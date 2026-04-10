@@ -1,0 +1,609 @@
+<!-- ASTRID Assistant Chatbot Redesign -->
+<style>
+/* --- Core Reset & Variales --- */
+#chatbot-container * {
+    box-sizing: border-box;
+    font-family: 'Inter', -apple-system, blinkmacsystemfont, 'Segoe UI', roboto, oxygen, ubuntu, cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+}
+
+:root {
+    --astrid-blue: #0EA5E9;
+    --astrid-blue-dark: #0369A1;
+    --astrid-blue-light: #F0F9FF;
+    --astrid-border: #E5E7EB;
+    --astrid-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+}
+
+/* --- Floating Button & Tooltip --- */
+#chatbot-toggle-wrapper {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    z-index: 9999;
+}
+
+.chatbot-tooltip {
+    position: absolute;
+    right: 75px;
+    top: 50%;
+    transform: translateY(-50%) translateX(10px);
+    background: white;
+    color: #334155;
+    padding: 10px 18px;
+    border-radius: 14px;
+    font-size: 14px;
+    font-weight: 500;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    border: 1px solid var(--astrid-border);
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#chatbot-toggle-wrapper:hover .chatbot-tooltip {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0);
+}
+
+#chatbot-toggle-btn {
+    background: var(--astrid-blue);
+    color: white;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: none;
+    box-shadow: 0 6px 20px rgba(14, 165, 233, 0.4);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+#chatbot-toggle-btn:hover {
+    background: var(--astrid-blue-dark);
+    transform: translateY(-4px) rotate(5deg);
+    box-shadow: 0 10px 25px rgba(14, 165, 233, 0.5);
+}
+
+#chatbot-toggle-btn svg {
+    width: 28px;
+    height: 28px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+/* --- Chat Window --- */
+#chatbot-window {
+    position: fixed;
+    bottom: 105px;
+    right: 30px;
+    width: 380px;
+    height: 600px;
+    background: white;
+    border-radius: 24px;
+    box-shadow: var(--astrid-shadow);
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+    z-index: 10000;
+    border: 1px solid rgba(14, 165, 233, 0.1);
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    opacity: 0;
+    transform: translateY(30px) scale(0.9);
+    transform-origin: bottom right;
+}
+
+#chatbot-window.open {
+    display: flex;
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
+
+/* --- Header --- */
+#chatbot-header {
+    background: linear-gradient(135deg, var(--astrid-blue-dark) 0%, var(--astrid-blue) 100%);
+    padding: 18px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: white;
+}
+
+.chatbot-header-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.chatbot-avatar {
+    width: 44px;
+    height: 44px;
+    background: white;
+    border-radius: 12px; /* slightly squared modern round */
+    padding: 2px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+.chatbot-avatar img {
+    width: 100%;
+    height: 100%;
+    border-radius: 10px;
+    object-fit: cover;
+}
+
+.chatbot-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+}
+
+.chatbot-status {
+    font-size: 12px;
+    opacity: 0.9;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 2px;
+}
+
+.status-dot {
+    width: 6px;
+    height: 6px;
+    background: #4ADE80;
+    border-radius: 50%;
+    box-shadow: 0 0 10px #4ADE80;
+}
+
+#chatbot-close-btn {
+    background: rgba(255,255,255,0.1);
+    border: none;
+    color: white;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+#chatbot-close-btn:hover {
+    background: rgba(255,255,255,0.2);
+    transform: scale(1.1);
+}
+
+/* --- Messages Area --- */
+#chatbot-messages {
+    flex: 1;
+    background: #F8FAFC;
+    padding: 20px 16px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    scroll-behavior: smooth;
+}
+
+#chatbot-messages::-webkit-scrollbar { width: 5px; }
+#chatbot-messages::-webkit-scrollbar-track { background: transparent; }
+#chatbot-messages::-webkit-scrollbar-thumb { background: #E2E8F0; border-radius: 10px; }
+
+.chat-msg-row {
+    display: flex;
+    width: 100%;
+    animation: fadeInSlide 0.3s ease-out;
+}
+
+@keyframes fadeInSlide {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.chat-msg-row.user { justify-content: flex-end; }
+.chat-msg-row.bot { justify-content: flex-start; align-items: flex-end; }
+
+.bot-msg-avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    margin-right: 10px;
+    background: white;
+    border: 1px solid var(--astrid-blue);
+}
+
+.chat-bubble {
+    max-width: 80%;
+    padding: 12px 18px;
+    font-size: 14px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    position: relative;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+}
+
+.chat-bubble.user {
+    background: var(--astrid-blue-dark);
+    color: white;
+    border-radius: 18px 18px 4px 18px;
+    font-weight: 500;
+}
+
+.chat-bubble.bot {
+    background: white;
+    color: #334155;
+    border-radius: 18px 18px 18px 4px;
+    border: 1px solid rgba(14, 165, 233, 0.2);
+}
+
+/* --- Quick Replies Section --- */
+#chatbot-quick-replies {
+    background: white;
+    padding: 14px 16px;
+    border-top: 1px solid #F1F5F9;
+}
+
+.quick-replies-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.quick-reply-btn {
+    background: var(--astrid-blue-light);
+    color: var(--astrid-blue-dark);
+    border: 1px solid rgba(14, 165, 233, 0.15);
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-size: 11px;
+    font-weight: 600;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.quick-reply-btn:hover {
+    background: #E0F2FE;
+    border-color: var(--astrid-blue);
+    transform: translateY(-1px);
+}
+
+/* --- Species Selector --- */
+#species-selector-row {
+    padding: 8px 16px;
+    background: white;
+    border-top: 1px solid #F1F5F9;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    overflow-x: auto;
+}
+
+#species-selector-row::-webkit-scrollbar { display: none; }
+
+.species-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #64748B;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+}
+
+.species-pill {
+    background: #F8FAFC;
+    border: 1px solid #E2E8F0;
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 12px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s;
+    font-weight: 500;
+}
+
+.species-pill.active {
+    background: var(--astrid-blue);
+    color: white;
+    border-color: var(--astrid-blue-dark);
+}
+
+/* --- Input Area --- */
+#chatbot-input-area {
+    padding: 16px;
+    background: white;
+    border-top: 1px solid #F1F5F9;
+}
+
+.modern-input-wrapper {
+    display: flex;
+    align-items: center;
+    background: #F8FAFC;
+    border: 1px solid #E2E8F0;
+    border-radius: 14px;
+    padding: 6px 12px;
+    transition: all 0.2s;
+}
+
+.modern-input-wrapper:focus-within {
+    border-color: var(--astrid-blue);
+    background: white;
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+}
+
+#chatbot-input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    padding: 8px 0;
+    font-size: 14px;
+    outline: none;
+    color: #334155;
+}
+
+#chatbot-send-btn {
+    background: var(--astrid-blue);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+#chatbot-send-btn:hover {
+    background: var(--astrid-blue-dark);
+    transform: scale(1.05);
+}
+
+#chatbot-send-btn svg {
+    width: 18px;
+    height: 18px;
+}
+
+/* --- UI Components --- */
+.typing-dot {
+    width: 5px;
+    height: 5px;
+    background: var(--astrid-blue);
+    border-radius: 50%;
+    animation: bounce 1.4s infinite ease-in-out;
+}
+@keyframes bounce { 
+    0%, 80%, 100% { transform: scale(0); }
+    40% { transform: scale(1); }
+}
+
+.book-vet-btn {
+    display: block;
+    width: 100%;
+    margin-top: 12px;
+    background: var(--astrid-blue);
+    color: white !important;
+    text-align: center;
+    padding: 10px;
+    border-radius: 10px;
+    font-weight: 700;
+    text-decoration: none;
+    box-shadow: 0 4px 10px rgba(14, 165, 233, 0.2);
+    transition: all 0.2s;
+}
+
+.book-vet-btn:hover {
+    background: var(--astrid-blue-dark);
+    transform: translateY(-2px);
+}
+
+@media (max-width: 480px) {
+    #chatbot-window {
+        width: 100%;
+        height: 100%;
+        bottom: 0;
+        right: 0;
+        border-radius: 0;
+    }
+}
+</style>
+
+<div id="chatbot-container">
+    <!-- Floating Toggle Button -->
+    <div id="chatbot-toggle-wrapper">
+        <div class="chatbot-tooltip">Hi! I'm ASTRID — Click to chat</div>
+        <button id="chatbot-toggle-btn" onclick="toggleChatbot()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M21 15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z" />
+            </svg>
+        </button>
+    </div>
+
+    <!-- Chat Window -->
+    <div id="chatbot-window">
+        <!-- Header -->
+        <div id="chatbot-header">
+            <div class="chatbot-header-left">
+                <div class="chatbot-avatar">
+                    <img src="{{ url_for('static', filename='images/astrid.png') }}" alt="ASTRID">
+                </div>
+                <div>
+                    <h3 class="chatbot-title">ASTRID Assistant</h3>
+                    <div class="chatbot-status">
+                        <span class="status-dot"></span> Online • VetSync Clinic
+                    </div>
+                </div>
+            </div>
+            <button id="chatbot-close-btn" onclick="toggleChatbot()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                    <path d="M18 6L6 18M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Messages -->
+        <div id="chatbot-messages"></div>
+
+        <!-- Quick Replies (2x3 Grid) -->
+        <div id="chatbot-quick-replies">
+            <div class="quick-replies-grid">
+                <button class="quick-reply-btn" onclick="sendChatMessage('How to Book Appointment')">📅 Book Appointment</button>
+                <button class="quick-reply-btn" onclick="sendChatMessage('Clinic Hours')">⏰ Clinic Hours</button>
+                <button class="quick-reply-btn" onclick="sendChatMessage('What are the Services?')">🏥 Services</button>
+                <button class="quick-reply-btn" onclick="sendChatMessage('How to Sign Up')">👤 How to Sign Up</button>
+                <button class="quick-reply-btn" onclick="sendChatMessage('How to Log In')">🔑 How to Log In</button>
+                <button class="quick-reply-btn" onclick="sendChatMessage('Emergency Contact')">🚨 Emergency</button>
+            </div>
+        </div>
+
+        <!-- Species Selector -->
+        <div id="species-selector-row">
+            <span class="species-label">My pet is:</span>
+            <button class="species-pill active" data-species="" onclick="selectSpecies(this)">🐾 Any</button>
+            <button class="species-pill" data-species="dog" onclick="selectSpecies(this)">🐕 Dog</button>
+            <button class="species-pill" data-species="cat" onclick="selectSpecies(this)">🐈 Cat</button>
+            <button class="species-pill" data-species="rabbit" onclick="selectSpecies(this)">🐇 Rabbit</button>
+            <button class="species-pill" data-species="bird" onclick="selectSpecies(this)">🐦 Bird</button>
+            <button class="species-pill" data-species="reptile" onclick="selectSpecies(this)">🦎 Reptile</button>
+        </div>
+
+        <!-- Input -->
+        <div id="chatbot-input-area">
+            <div class="modern-input-wrapper">
+                <input type="text" id="chatbot-input" placeholder="Ask ASTRID about your pet..." onkeypress="handleKeyPress(event)">
+                <button id="chatbot-send-btn" onclick="sendChatMessage()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <path d="M22 2L11 13M22 2L15 22L11 13L2 9L22 2Z" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let selectedSpecies = "";
+    let messages = [
+        { type: 'bot', text: "Hi there! 👋 I'm ASTRID, your VetSync Assistant.\n\nI can help you with:\n  - Clinic info (booking, hours, services)\n  - Pet health questions (vomiting, limping, diarrhea, etc.)\n\nWhat can I help you today?" }
+    ];
+
+    const messagesContainer = document.getElementById('chatbot-messages');
+    const inputElement = document.getElementById('chatbot-input');
+    const chatbotWindow = document.getElementById('chatbot-window');
+
+    document.addEventListener('DOMContentLoaded', () => { renderMessages(); });
+
+    function toggleChatbot() {
+        if (chatbotWindow.classList.contains('open')) {
+            chatbotWindow.classList.remove('open');
+            setTimeout(() => { chatbotWindow.style.display = 'none'; }, 400);
+        } else {
+            chatbotWindow.style.display = 'flex';
+            setTimeout(() => { chatbotWindow.classList.add('open'); }, 10);
+        }
+    }
+
+    function selectSpecies(btn) {
+        document.querySelectorAll('.species-pill').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        selectedSpecies = btn.dataset.species;
+        inputElement.placeholder = selectedSpecies ? `Ask about your ${selectedSpecies}...` : "Ask ASTRID about your pet...";
+    }
+
+    function renderMessages() {
+        messagesContainer.innerHTML = '';
+        messages.forEach(msg => {
+            const row = document.createElement('div');
+            row.className = `chat-msg-row ${msg.type}`;
+
+            if (msg.type === 'bot') {
+                const nav = document.createElement('img');
+                nav.src = "{{ url_for('static', filename='images/astrid.png') }}";
+                nav.className = 'bot-msg-avatar';
+                row.appendChild(nav);
+            }
+
+            const bubble = document.createElement('div');
+            bubble.className = `chat-bubble ${msg.type}`;
+            bubble.innerHTML = msg.type === 'bot' ? formatBotMessage(msg.text) : msg.text;
+
+            if (msg.showBooking && msg.type === 'bot') {
+                const btn = document.createElement('a');
+                btn.href = "/booking";
+                btn.className = "book-vet-btn";
+                btn.innerText = `📅 Book Appointment for your ${selectedSpecies || 'pet'}`;
+                bubble.appendChild(btn);
+            }
+
+            row.appendChild(bubble);
+            messagesContainer.appendChild(row);
+        });
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    function formatBotMessage(text) {
+        return text.replace(/\n/g, '<br>')
+            .replace(/^([A-Z][^:\n]{2,40}:)$/gm, '<strong>$1</strong>')
+            .replace(/^-----$/gm, '<hr style="opacity:0.2;">')
+            .replace(/(Book an appointment[^\n]+)/g, '<span style="color:var(--astrid-blue-dark);font-weight:700;">$1</span>');
+    }
+
+    async function sendChatMessage(presetText) {
+        const text = presetText || inputElement.value;
+        if (!text.trim()) return;
+
+        messages.push({ type: 'user', text: text.trim() });
+        inputElement.value = '';
+        renderMessages();
+
+        const tid = showTyping();
+        const endpoint = selectedSpecies ? '/api/chat/health' : '/api/chat';
+        
+        try {
+            const res = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: text.trim(), species: selectedSpecies })
+            });
+            const data = await res.json();
+            
+            setTimeout(() => {
+                removeTyping(tid);
+                messages.push({ type: 'bot', text: data.reply, showBooking: data.show_booking });
+                renderMessages();
+            }, 600);
+        } catch (e) {
+            removeTyping(tid);
+            messages.push({ type: 'bot', text: "Sorry, I'm offline. Please try again later." });
+            renderMessages();
+        }
+    }
+
+    function showTyping() {
+        const id = 't-' + Date.now();
+        const row = document.createElement('div');
+        row.className = 'chat-msg-row bot';
+        row.id = id;
+        row.innerHTML = `<img src="{{ url_for('static', filename='images/astrid.png') }}" class="bot-msg-avatar">
+            <div class="chat-bubble bot" style="display:flex;gap:4px;padding:12px 16px;">
+                <div class="typing-dot"></div><div class="typing-dot" style="animation-delay:0.2s"></div><div class="typing-dot" style="animation-delay:0.4s"></div>
+            </div>`;
+        messagesContainer.appendChild(row);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        return id;
+    }
+
+    function removeTyping(id) {
+        const el = document.getElementById(id);
+        if (el) el.remove();
+    }
+
+    function handleKeyPress(e) { if (e.key === 'Enter') sendChatMessage(); }
+</script>
