@@ -6,3 +6,4 @@ pandas
 datasets
 requests
 google-genai
+python-dotenv

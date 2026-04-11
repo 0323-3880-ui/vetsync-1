@@ -6,6 +6,10 @@ import os
 import json
 import re
 import traceback
+from dotenv import load_dotenv
+
+# Load environment variables from .env file (for local development)
+load_dotenv()
 
 # ── Gemini Flash LLM (Layer 3) ──────────────────────────────────────────────
 GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', '')

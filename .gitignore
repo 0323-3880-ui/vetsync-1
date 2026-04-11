@@ -6,6 +6,8 @@ venv/
 .venv/
 env/
 .env
+.env.local
+.env.*.local
 
 # Flask / SQLite
 instance/
