@@ -5,6 +5,98 @@ from datetime import datetime, date
 import os
 import json
 import re
+import traceback
+
+# ── Gemini Flash LLM (Layer 3) ──────────────────────────────────────────────
+GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', '')
+_gemini_client = None
+
+ASTRID_SYSTEM_PROMPT = """You are ASTRID, a friendly and caring AI veterinary assistant for VetSync Clinic.
+
+RULES:
+- Be empathetic, warm, and professional in every response.
+- NEVER give a definitive diagnosis. Only suggest POSSIBLE causes and general advice.
+- ALWAYS include this disclaimer at the end: "This is general guidance only and NOT a substitute for professional veterinary diagnosis. Please book an appointment with our vet for proper evaluation."
+- If the situation sounds urgent (bleeding, seizure, collapse, difficulty breathing, poisoning), STRONGLY urge an immediate vet visit.
+- Keep responses concise: 3-5 short paragraphs maximum.
+- Use bullet points for lists of possible causes or advice.
+- If you are unsure, say so honestly and recommend professional consultation.
+- NEVER recommend human medications for pets (paracetamol, ibuprofen, etc. are toxic).
+- When relevant, suggest the user book an appointment through VetSync.
+- Respond in a natural, conversational tone — not robotic or clinical."""
+
+
+def _get_gemini_client():
+    """Lazy-initialize the Gemini client."""
+    global _gemini_client
+    if _gemini_client is None and GEMINI_API_KEY:
+        try:
+            from google import genai
+            _gemini_client = genai.Client(api_key=GEMINI_API_KEY)
+        except Exception as e:
+            print(f"[ASTRID] Gemini init failed: {e}")
+            _gemini_client = False  # Mark as failed so we don't retry
+    return _gemini_client if _gemini_client else None
+
+
+def _find_relevant_snippets(message, max_snippets=3):
+    """Find vet_med article snippets relevant to the user's message for LLM grounding."""
+    kb = _load_kb()
+    snippets = kb.get('vet_med_snippets', [])
+    if not snippets:
+        return []
+
+    words = set(w for w in message.lower().split() if len(w) > 3)
+    scored = []
+    for s in snippets:
+        kw_overlap = len(words & set(s.get('keywords', [])))
+        text_hits = sum(1 for w in words if w in s.get('text', '').lower())
+        score = kw_overlap * 2 + text_hits
+        if score > 0:
+            scored.append((score, s['text']))
+
+    scored.sort(key=lambda x: x[0], reverse=True)
+    return [text for _, text in scored[:max_snippets]]
+
+
+def _call_gemini_flash(user_message, kb_context="", species=""):
+    """Call Gemini Flash with the user message + grounding context."""
+    client = _get_gemini_client()
+    if not client:
+        return None
+
+    # Build context block
+    context_parts = []
+    if species:
+        context_parts.append(f"The user's pet species: {species}")
+    if kb_context:
+        context_parts.append(f"Relevant veterinary knowledge:\n{kb_context}")
+
+    # Find relevant snippets from vet_med dataset
+    snippets = _find_relevant_snippets(user_message)
+    if snippets:
+        context_parts.append("Additional veterinary reference material:\n" + "\n---\n".join(snippets))
+
+    user_prompt = user_message
+    if context_parts:
+        user_prompt = "\n\n".join(context_parts) + f"\n\nUser question: {user_message}"
+
+    try:
+        response = client.models.generate_content(
+            model="gemini-2.0-flash",
+            contents=user_prompt,
+            config={
+                "system_instruction": ASTRID_SYSTEM_PROMPT,
+                "temperature": 0.7,
+                "max_output_tokens": 600,
+            }
+        )
+        return response.text if response.text else None
+    except Exception as e:
+        print(f"[ASTRID] Gemini call failed: {e}")
+        traceback.print_exc()
+        return None
+
 
 app = Flask(__name__)
 app.secret_key = 'vetsync-secret-key-2024'
@@ -354,7 +446,26 @@ def api_chat():
             'emoji':        result['emoji'],
         })
 
-    # ─── Layer 3: Fallback ────────────────────────────────────────────────────
+    # ─── Layer 3: Gemini Flash LLM ─────────────────────────────────────────────
+    # Build some KB context for grounding even when no exact match
+    kb_context_parts = []
+    symptom_history = kb.get('symptom_history', {})
+    for symptom, histories in symptom_history.items():
+        if symptom in message:
+            kb_context_parts.append(f"Symptom '{symptom}' is associated with: {', '.join(histories[:3])}")
+
+    kb_context = "\n".join(kb_context_parts) if kb_context_parts else ""
+    species = data.get('species', '')
+
+    llm_reply = _call_gemini_flash(message, kb_context=kb_context, species=species)
+    if llm_reply:
+        return jsonify({
+            'reply':        llm_reply,
+            'type':         'llm',
+            'show_booking': True,
+        })
+
+    # ─── Layer 4: Static Fallback (no API key or LLM failure) ────────────────
     fallback = (
         "I'm ASTRID, your VetSync health assistant!\n\n"
         "I can help with:\n"

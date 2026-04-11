@@ -720,6 +720,62 @@ def load_clinical_csv():
     return result
 
 
+def load_vet_med_articles():
+    """
+    Load vet_med dataset (HuggingFace: houck2040/vet_med) and extract
+    short context snippets relevant to pet health topics.
+    Since this dataset is veterinary articles (not Q&A), we pick paragraphs
+    that mention health-related keywords for LLM grounding.
+    """
+    VET_MED_CSV = os.path.join(BASE_DIR, "raw", "vet_med_train.csv")
+    snippets = []
+
+    if not os.path.exists(VET_MED_CSV):
+        print(f"[WARN] vet_med CSV not found: {VET_MED_CSV}")
+        print("       Run: python dataset/scripts/download_vet_med.py")
+        return snippets
+
+    # Health-related terms to look for in the articles
+    HEALTH_TERMS = {
+        "disease", "infection", "vaccine", "treatment", "symptom", "parasite",
+        "surgery", "diagnosis", "antibiotic", "virus", "bacteria", "cancer",
+        "pneumonia", "arthritis", "dental", "obesity", "laminitis", "colic",
+        "respiratory", "fever", "inflammation", "pain", "immune", "toxin",
+        "allergy", "dermatitis", "clinical", "veterinarian", "emergency",
+        "heartworm", "flea", "tick", "worm", "rabies", "parvovirus",
+        "kidney", "liver", "pancreatitis", "diabetes",
+    }
+
+    with open(VET_MED_CSV, encoding="utf-8", errors="ignore") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            story = row.get("story", "").strip()
+            if not story or len(story) < 80:
+                continue
+
+            # Only keep paragraphs that discuss health topics
+            story_lower = story.lower()
+            matched_terms = [t for t in HEALTH_TERMS if t in story_lower]
+            if len(matched_terms) >= 2:
+                # Truncate to a useful context size (max 500 chars)
+                snippet = story[:500].strip()
+                if len(story) > 500:
+                    # Cut at last sentence boundary
+                    last_period = snippet.rfind(".")
+                    if last_period > 200:
+                        snippet = snippet[:last_period + 1]
+                snippets.append({
+                    "text": snippet,
+                    "keywords": matched_terms[:5],
+                })
+
+            if len(snippets) >= 300:
+                break
+
+    print(f"[OK] Loaded {len(snippets)} health-relevant snippets from vet_med dataset")
+    return snippets
+
+
 def build_knowledge_base():
     """Merge all sources into the final knowledge_base.json."""
     kb = {}
@@ -737,19 +793,25 @@ def build_knowledge_base():
     # 3. Attach symptom->history map as metadata
     clinical_data = load_clinical_csv()
 
-    # 4. Add keyword_map so the API can resolve user input
+    # 4. Load vet_med article snippets for LLM grounding
+    vet_med_snippets = load_vet_med_articles()
+
+    # 5. Build unified output
     output = {
-        "keyword_map":    KEYWORD_MAP,
-        "knowledge_base": kb,
-        "symptom_history": clinical_data,
+        "keyword_map":      KEYWORD_MAP,
+        "knowledge_base":   kb,
+        "symptom_history":  clinical_data,
+        "vet_med_snippets": vet_med_snippets,
         "metadata": {
-            "version": "1.0",
-            "generated": "2026-04-10",
+            "version": "2.0",
+            "generated": "2026-04-11",
             "total_entries": len(kb),
+            "vet_med_snippets_count": len(vet_med_snippets),
             "sources": [
                 "Built-in expert knowledge base",
                 "Animal disease spreadsheet - Sheet1.csv",
                 "veterinary_clinical_data.csv",
+                "houck2040/vet_med (HuggingFace)",
             ],
         },
     }
@@ -758,9 +820,10 @@ def build_knowledge_base():
         json.dump(output, f, ensure_ascii=False, indent=2)
 
     print(f"\n[DONE] Knowledge base saved to: {OUT_JSON}")
-    print(f"   Total KB entries : {len(kb)}")
-    print(f"   Symptom mappings : {len(clinical_data)}")
-    print(f"   Keyword triggers : {len(KEYWORD_MAP)}")
+    print(f"   Total KB entries      : {len(kb)}")
+    print(f"   Symptom mappings      : {len(clinical_data)}")
+    print(f"   Keyword triggers      : {len(KEYWORD_MAP)}")
+    print(f"   Vet med snippets      : {len(vet_med_snippets)}")
 
 
 if __name__ == "__main__":
