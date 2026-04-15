@@ -35,13 +35,11 @@
             <div class="auth-row">
                 <div class="auth-field" style="position: relative;">
                     <input type="password" id="signupPass" name="password" placeholder="Enter your Password" required>
-                    <span class="field-icon" style="position:absolute; left: 15px; top:50%; transform:translateY(-50%);">🔒</span>
-                    <span onclick="togglePassword('signupPass', this)" title="Show Password" style="position:absolute; right: 15px; top:50%; transform:translateY(-50%); cursor:pointer; font-size: 18px; color: #64748B;">👁️</span>
+                    <span onclick="togglePassword('signupPass', this)" title="Show Password" style="position:absolute; right: 15px; top:50%; transform:translateY(-50%); cursor:pointer; font-size: 18px; color: #64748B; user-select: none;">👁️</span>
                 </div>
                 <div class="auth-field" style="position: relative;">
                     <input type="password" id="signupPass2" name="re_password" placeholder="Re-enter Password" required>
-                    <span class="field-icon" style="position:absolute; left: 15px; top:50%; transform:translateY(-50%);">🔒</span>
-                    <span onclick="togglePassword('signupPass2', this)" title="Show Password" style="position:absolute; right: 15px; top:50%; transform:translateY(-50%); cursor:pointer; font-size: 18px; color: #64748B;">👁️</span>
+                    <span onclick="togglePassword('signupPass2', this)" title="Show Password" style="position:absolute; right: 15px; top:50%; transform:translateY(-50%); cursor:pointer; font-size: 18px; color: #64748B; user-select: none;">👁️</span>
                 </div>
             </div>
             <button type="submit" class="btn-auth">Sign up</button>
@@ -55,7 +53,7 @@ function togglePassword(inputId, iconEl) {
     const input = document.getElementById(inputId);
     if (input.type === "password") {
         input.type = "text";
-        iconEl.innerText = "👀"; 
+        iconEl.innerText = "🙈"; 
         iconEl.title = "Hide Password";
     } else {
         input.type = "password";
