@@ -163,7 +163,7 @@ class Report(db.Model):
 # ===================== CONSTANTS =====================
 
 ALL_SLOTS = ["9:00 AM","10:00 AM","11:00 AM","1:00 PM","2:00 PM","3:00 PM","4:00 PM"]
-PET_TYPES = ["Dog","Cat","Bird","Rabbit","Reptile","Other"]
+PET_TYPES = ["Dog","Cat","Bird","Rabbit","Reptile","Fish","Other"]
 
 
 # ===================== SEED =====================
@@ -524,7 +524,11 @@ def index():
 @app.route('/booking')
 @login_required
 def booking_page():
-    user     = current_user()
+    user = current_user()
+    if user.role != 'client':
+        flash('Only clients can book appointments online. Please use the management dashboard.', 'info')
+        return redirect(url_for('admin_dashboard' if user.role == 'admin' else 'staff_dashboard'))
+        
     services = Service.query.all()
     today    = date.today().isoformat()
     return render_template('booking_page.html', user=user,
@@ -643,13 +647,15 @@ def login():
                 flash('Your account has been deactivated. Please contact support.', 'error')
                 return render_template('login.html')
             session['user_id'] = user.id
-            flash('Logged in successfully.', 'success')
+            flash(f'Welcome back, {user.first_name}!', 'success')
             
-            # Role-based redirection for web interface
+            # Check for redirect target in either args (GET param) or form (hidden input if we added one)
+            next_url = request.args.get('next')
+            
             if user.role == 'admin':
-                return redirect(url_for('admin_dashboard'))
+                return redirect(next_url if next_url and 'admin' in next_url else url_for('admin_dashboard'))
             elif user.role == 'staff':
-                return redirect(url_for('staff_dashboard'))
+                return redirect(next_url if next_url and 'staff' in next_url else url_for('staff_dashboard'))
             else:
                 next_url = request.args.get('next') or url_for('dashboard')
                 return redirect(next_url)
@@ -799,6 +805,84 @@ def staff_dashboard():
                            total_patients_this_month=total_patients_this_month,
                            bookings=bookings,
                            bookings_json=json.dumps(b_json))
+
+@app.route('/staff/appointments')
+@login_required
+@staff_required
+def staff_appointments():
+    user = current_user()
+    bookings = Booking.query.order_by(Booking.date.desc(), Booking.slot.desc()).all()
+    return render_template('staff_appointments.html', user=user, bookings=bookings)
+
+@app.route('/staff/pet-records')
+@login_required
+@staff_required
+def staff_pet_records():
+    user = current_user()
+    # Group bookings by pet name + client email for unique records
+    all_bookings = Booking.query.all()
+    pet_history = {}
+    for b in all_bookings:
+        key = f"{b.pet_name}|{b.email}"
+        if key not in pet_history:
+            pet_history[key] = {
+                'name': b.pet_name,
+                'type': b.pet_type,
+                'breed': b.pet_breed,
+                'owner': b.name,
+                'email': b.email,
+                'records': []
+            }
+        pet_history[key]['records'].append({
+            'date': b.date.isoformat(),
+            'service': b.service_ref.name,
+            'reason': b.visit_reason,
+            'status': b.status,
+            'notes': b.notes
+        })
+    
+    return render_template('staff_pet_records.html', user=user, pet_history=pet_history)
+
+@app.route('/staff/offers')
+@login_required
+@staff_required
+def staff_offers():
+    return render_template('staff_offers.html', user=current_user())
+
+
+@app.route('/staff/booking/<int:bid>/status', methods=['POST'])
+@login_required
+@staff_required
+def update_booking_status_web(bid):
+    status = request.form.get('status')
+    if status not in ['confirmed', 'pending', 'cancelled', 'completed']:
+        flash('Invalid status.', 'error')
+        return redirect(request.referrer or url_for('staff_dashboard'))
+    
+    booking = db.session.get(Booking, bid)
+    if not booking:
+        flash('Booking not found.', 'error')
+    else:
+        booking.status = status
+        db.session.commit()
+        flash(f'Booking #{bid} updated to {status}.', 'success')
+    
+    return redirect(request.referrer or url_for('staff_dashboard'))
+
+
+@app.route('/staff/booking/<int:bid>/delete', methods=['POST'])
+@login_required
+@staff_required
+def delete_booking_web(bid):
+    booking = db.session.get(Booking, bid)
+    if not booking:
+        flash('Booking not found.', 'error')
+    else:
+        db.session.delete(booking)
+        db.session.commit()
+        flash(f'Booking #{bid} has been removed.', 'success')
+    
+    return redirect(request.referrer or url_for('staff_dashboard'))
 
 @app.route('/api/availability', methods=['GET', 'POST'])
 @login_required
@@ -1049,6 +1133,19 @@ def update_appointment(current_user_jwt, booking_id):
         
     db.session.commit()
     return jsonify({'message': 'Booking updated successfully', 'status': booking.status}), 200
+
+
+@api_v1.route('/appointments/<int:booking_id>', methods=['DELETE'])
+@jwt_required
+@role_required(['staff', 'admin'])
+def delete_appointment(current_user_jwt, booking_id):
+    booking = db.session.get(Booking, booking_id)
+    if not booking:
+        return jsonify({'error': 'Booking not found'}), 404
+    
+    db.session.delete(booking)
+    db.session.commit()
+    return jsonify({'message': 'Booking removed successfully'}), 200
 
 
 @api_v1.route('/notifications', methods=['GET', 'POST'])

@@ -20,39 +20,40 @@
             <span class="logo-text">VetSync</span>
         </a>
         <ul class="nav-links">
-            {% if current_user %}
-                {% if current_user.role == 'admin' %}
-                    <li><a href="{{ url_for('admin_dashboard') }}" class="{% if request.endpoint == 'admin_dashboard' %}active{% endif %}">Dashboard</a></li>
-                    <li><a href="#" class="">Users & Staff</a></li>
-                    <li><a href="#" class="">Appointments</a></li>
-                    <li><a href="#" class="">Reports</a></li>
-                {% elif current_user.role == 'staff' %}
-                    <li><a href="{{ url_for('staff_dashboard') }}" class="{% if request.endpoint == 'staff_dashboard' %}active{% endif %}">Dashboard</a></li>
-                    <li><a href="{{ url_for('staff_dashboard') }}#appointments" class="">Appointments</a></li>
-                    <li><a href="{{ url_for('staff_dashboard') }}#schedule" class="">Schedule</a></li>
-                    <li><a href="{{ url_for('staff_dashboard') }}#availability" class="">Availability</a></li>
-                    <li><a href="{{ url_for('staff_dashboard') }}#patients" class="">Patients</a></li>
-                    <li><a href="{{ url_for('staff_dashboard') }}#reports" class="">Reports</a></li>
-                {% elif current_user.role == 'client' %}
-                    <li><a href="{{ url_for('dashboard') }}" class="{% if request.endpoint == 'dashboard' %}active{% endif %}">Dashboard</a></li>
-                    <li><a href="#" class="">My Pets</a></li>
-                    <li><a href="#" class="">Offers</a></li>
-                {% endif %}
+            {% if current_user and current_user.role in ['staff', 'admin'] %}
+                <li><a href="{{ url_for('staff_dashboard') if current_user.role == 'staff' else url_for('admin_dashboard') }}" class="{% if 'dashboard' in request.endpoint %}active{% endif %}">Dashboard</a></li>
+                <li><a href="{{ url_for('staff_appointments') }}" class="{% if request.endpoint == 'staff_appointments' %}active{% endif %}">Appointments</a></li>
+                <li><a href="{{ url_for('staff_pet_records') }}" class="{% if request.endpoint == 'staff_pet_records' %}active{% endif %}">Pet Records</a></li>
+                <li><a href="{{ url_for('staff_dashboard') if current_user.role == 'staff' else url_for('admin_dashboard') }}#schedule" class="">Schedule</a></li>
             {% else %}
                 <li><a href="{{ url_for('index') }}" class="{% if request.endpoint == 'index' %}active{% endif %}">Home</a></li>
                 <li><a href="{{ url_for('about') }}" class="{% if request.endpoint == 'about' %}active{% endif %}">About</a></li>
                 <li><a href="{{ url_for('services_page') }}" class="{% if request.endpoint == 'services_page' %}active{% endif %}">Services</a></li>
                 <li><a href="{{ url_for('contact') }}" class="{% if request.endpoint == 'contact' %}active{% endif %}">Contacts</a></li>
+                {% if current_user %}
+                    <li><a href="{{ url_for('dashboard') }}" class="{% if request.endpoint == 'dashboard' %}active{% endif %}">My Dashboard</a></li>
+                {% endif %}
             {% endif %}
+
+            <!-- Mobile-only Auth Links -->
+            <li class="nav-mobile-auth">
+                {% if not current_user %}
+                    <a href="{{ url_for('login') }}" class="btn-nav-outline mobile-nav-btn">Log In</a>
+                    <a href="{{ url_for('signup') }}" class="btn-nav-fill mobile-nav-btn">Sign Up</a>
+                {% else %}
+                    <a href="{{ url_for('logout') }}" class="btn-nav-outline mobile-nav-btn" style="border-color:#EF4444; color:#EF4444;">Log Out</a>
+                {% endif %}
+            </li>
         </ul>
         <div class="nav-auth">
             {% if not current_user %}
                 <a href="{{ url_for('login') }}" class="btn-nav-outline">Log In</a>
                 <a href="{{ url_for('signup') }}" class="btn-nav-fill">Sign Up</a>
             {% else %}
-                <div class="nav-profile-menu" style="display:flex; align-items:center; gap:15px;">
-                    <a href="#" style="color:var(--text-color); font-weight:600; text-decoration:none;">⚙️ Settings</a>
-                    <a href="{{ url_for('logout') }}" class="btn-nav-outline" style="border-color:#EF4444; color:#EF4444;">🚪 Log Out</a>
+                <div class="nav-profile-menu">
+                    <span class="nav-user">👋 {{ current_user.first_name }}</span>
+                    <a href="{{ url_for('dashboard') if current_user.role == 'client' else (url_for('admin_dashboard') if current_user.role == 'admin' else url_for('staff_dashboard')) }}" title="Settings">⚙️</a>
+                    <a href="{{ url_for('logout') }}" class="logout-link" title="Logout">🚪</a>
                 </div>
             {% endif %}
         </div>
@@ -111,7 +112,7 @@
             </div>
             <div class="footer-col">
                 <h4>Get Care</h4>
-                <a href="{{ url_for('index') }}#book">Book Now</a>
+                <a href="{{ url_for('booking_page') }}">Book Now</a>
                 <a href="#">Emergency</a>
                 <a href="{{ url_for('contact') }}">Contact</a>
             </div>

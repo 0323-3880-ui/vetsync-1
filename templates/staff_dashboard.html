@@ -7,30 +7,39 @@
     :root {
         --dash-primary: #0EA5E9;
         --dash-primary-dark: #0284C7;
-        --dash-bg: #F8FAFC;
+        --dash-bg: #F0F9FF; /* Even lighter blue for health clinical feel */
         --dash-card-bg: #FFFFFF;
         --dash-border: #E2E8F0;
         --dash-text: #1E293B;
         --dash-text-muted: #64748B;
+        
         --status-confirmed-bg: #DCFCE7;
         --status-confirmed-text: #166534;
         --status-pending-bg: #FEF9C3;
         --status-pending-text: #854D0E;
+        --status-completed-bg: #DBEAFE;
+        --status-completed-text: #1E40AF;
         --status-cancelled-bg: #FEE2E2;
         --status-cancelled-text: #991B1B;
 
+        /* Action Colors */
+        --color-accept: #10B981;
+        --color-finish: #3B82F6;
+        --color-cancel: #F59E0B;
+        --color-delete: #EF4444;
+
         /* Calendar Slot Colors */
-        --slot-available-bg: #D1FAE5; /* Light Green */
-        --slot-available-border: #34D399;
+        --slot-available-bg: #ECFDF5;
+        --slot-available-border: #10B981;
         --slot-available-text: #065F46;
 
-        --slot-booked-bg: #E2E8F0; /* Light Gray */
-        --slot-booked-border: #94A3B8;
-        --slot-booked-text: #475569;
+        --slot-booked-bg: #EFF6FF;
+        --slot-booked-border: #3B82F6;
+        --slot-booked-text: #1E40AF;
 
-        --slot-unavailable-bg: #FEE2E2; /* Light Red */
-        --slot-unavailable-border: #EF4444;
-        --slot-unavailable-text: #991B1B;
+        --slot-unavailable-bg: #F1F5F9;
+        --slot-unavailable-border: #94A3B8;
+        --slot-unavailable-text: #475569;
     }
 
     body {
@@ -270,7 +279,31 @@
     }
     .status-confirmed { background: var(--status-confirmed-bg); color: var(--status-confirmed-text); }
     .status-pending { background: var(--status-pending-bg); color: var(--status-pending-text); }
+    .status-completed { background: var(--status-completed-bg); color: var(--status-completed-text); }
     .status-cancelled { background: var(--status-cancelled-bg); color: var(--status-cancelled-text); }
+
+    .action-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 6px 10px;
+        border-radius: 8px;
+        font-size: 11px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s;
+        border: 1px solid transparent;
+        gap: 4px;
+        color: white;
+    }
+    .action-accept { background: var(--color-accept); }
+    .action-accept:hover { background: #059669; }
+    .action-finish { background: var(--color-finish); }
+    .action-finish:hover { background: #2563EB; }
+    .action-cancel { background: white; color: var(--color-cancel); border-color: var(--color-cancel); }
+    .action-cancel:hover { background: #FFF7ED; }
+    .action-delete { background: white; color: var(--color-delete); border-color: var(--color-delete); }
+    .action-delete:hover { background: #FEF2F2; }
 
     .pet-avatar {
         width: 32px; height: 32px;
@@ -415,13 +448,31 @@
                                 {{ b.status | title }}
                             </span>
                         </td>
-                        <td style="display:flex; gap:8px;">
-                            <button class="cal-btn" style="padding: 6px 12px; font-size:12px;" onclick="viewDetail('{{ b.id }}')">Details</button>
+                        <td style="display:flex; gap:6px; flex-wrap:wrap;">
                             {% if b.status == 'pending' %}
-                            <button class="cal-btn primary" style="padding: 6px 12px; font-size:12px;" onclick="updateStatus('{{ b.id }}', 'confirmed')">Confirm</button>
-                            {% elif b.status == 'confirmed' %}
-                            <button class="cal-btn" style="padding: 6px 12px; font-size:12px; background:#DCFCE7; color:#166534; border-color:#34D399;" onclick="updateStatus('{{ b.id }}', 'completed')">Check Out</button>
+                            <form action="{{ url_for('update_booking_status_web', bid=b.id) }}" method="POST">
+                                <input type="hidden" name="status" value="confirmed">
+                                <button type="submit" class="action-btn action-accept" title="Accept Booking">✓ Accept</button>
+                            </form>
                             {% endif %}
+                            
+                            {% if b.status == 'confirmed' %}
+                            <form action="{{ url_for('update_booking_status_web', bid=b.id) }}" method="POST">
+                                <input type="hidden" name="status" value="completed">
+                                <button type="submit" class="action-btn action-finish" title="Mark as Completed">🏁 Finish</button>
+                            </form>
+                            {% endif %}
+
+                            {% if b.status != 'cancelled' and b.status != 'completed' %}
+                            <form action="{{ url_for('update_booking_status_web', bid=b.id) }}" method="POST">
+                                <input type="hidden" name="status" value="cancelled">
+                                <button type="submit" class="action-btn action-cancel" title="Cancel Booking">✕ Cancel</button>
+                            </form>
+                            {% endif %}
+                            
+                            <form action="{{ url_for('delete_booking_web', bid=b.id) }}" method="POST" onsubmit="return confirm('Completely remove this appointment?')">
+                                <button type="submit" class="action-btn action-delete" title="Delete Permanent">🗑️</button>
+                            </form>
                         </td>
                     </tr>
                     {% endfor %}
@@ -601,10 +652,25 @@
                 
                 let content = '<div class="slot-item slot-available">Free</div>';
                 
+                const petEmoji = (type) => {
+                    const t = String(type).toLowerCase();
+                    if (t.includes('dog')) return '🐶';
+                    if (t.includes('cat')) return '🐱';
+                    if (t.includes('bird')) return '🐦';
+                    if (t.includes('rabbit')) return '🐰';
+                    if (t.includes('reptile') || t.includes('lizard')) return '🦎';
+                    if (t.includes('fish')) return '🐟';
+                    return '🐾';
+                };
+
                 if (block) {
                     content = '<div class="slot-item slot-unavailable">Break</div>';
                 } else if (booking) {
-                    content = `<div class="slot-item slot-booked">🐾 ${booking.pet_name}</div>`;
+                    content = `
+                        <div class="slot-item slot-booked" onclick="viewDetail('${booking.id}')">
+                            <div style="font-weight:700;">${petEmoji(booking.pet_type)} ${booking.pet_name}</div>
+                            <div style="opacity:0.8; font-size:9px;">${booking.client_name.split(' ')[0]} - ${booking.service}</div>
+                        </div>`;
                 }
                 
                 grid.innerHTML += `<div class="cal-cell cal-interactive-cell" onclick="handleCellClick('${dateStr}', '${slot}', ${!!booking})">${content}</div>`;
