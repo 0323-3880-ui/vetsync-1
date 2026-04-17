@@ -125,9 +125,28 @@
         background: var(--dash-card-bg);
         border: 1px solid var(--dash-border);
         border-radius: 16px;
-        padding: 24px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
         margin-bottom: 40px;
+        /* Mobile Smooth Scroll */
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+        position: relative;
+    }
+    
+    /* Mobile-only swipe hint */
+    @media (max-width: 900px) {
+        .calendar-container::after {
+            content: '';
+            position: sticky;
+            right: 0;
+            top: 0;
+            height: 100%;
+            width: 30px;
+            background: linear-gradient(to left, rgba(255,255,255,0.8), transparent);
+            pointer-events: none;
+            z-index: 5;
+            display: block;
+        }
     }
 
     .cal-controls {
@@ -135,58 +154,55 @@
         justify-content: space-between;
         margin-bottom: 20px;
         align-items: center;
+        flex-wrap: wrap;
+        gap: 15px;
     }
-
-    .cal-btn {
-        background: white;
-        border: 1px solid var(--dash-border);
-        padding: 8px 16px;
-        border-radius: 8px;
-        cursor: pointer;
-        font-weight: 500;
-        color: var(--dash-text);
-        transition: all 0.2s;
-    }
-
-    .cal-btn.primary {
-        background: var(--dash-primary);
-        color: white;
-        border-color: var(--dash-primary);
-    }
-    .cal-btn.primary:hover { background: var(--dash-primary-dark); }
-    .cal-btn:hover:not(.primary) { background: var(--dash-bg); }
 
     .cal-grid {
         display: grid;
+        /* Default Desktop Grid */
         grid-template-columns: 80px repeat(7, 1fr);
         gap: 1px;
         background: var(--dash-border);
         border: 1px solid var(--dash-border);
         border-radius: 8px;
-        overflow: hidden;
     }
 
     .cal-cell {
         background: white;
-        min-height: 60px;
+        min-height: 80px;
         padding: 8px;
         position: relative;
+        scroll-snap-align: start;
     }
 
     .cal-header-cell {
         background: #F8FAFC;
         text-align: center;
-        padding: 12px 8px;
-        font-weight: 600;
+        padding: 16px 8px;
+        font-weight: 700;
         font-size: 14px;
         color: var(--dash-text-muted);
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        border-bottom: 1px solid var(--dash-border);
+    }
+
+    /* Keep the 'Time' header and column sticky on mobile swipe */
+    .cal-header-cell:first-child, .cal-time-col {
+        position: sticky;
+        left: 0;
+        z-index: 10;
+        background: #F1F5F9;
+        border-right: 2px solid var(--dash-border);
     }
 
     .cal-time-col {
-        background: #F8FAFC;
         text-align: right;
         padding-right: 12px;
-        font-size: 12px;
+        font-size: 11px;
+        font-weight: 700;
         color: var(--dash-text-muted);
         display: flex;
         align-items: center;
@@ -194,40 +210,33 @@
     }
 
     .slot-item {
-        border-radius: 4px;
-        padding: 4px 8px;
+        border-radius: 6px;
+        padding: 6px 10px;
         font-size: 11px;
         margin-bottom: 4px;
         cursor: pointer;
         transition: all 0.2s;
-        border-left: 3px solid; /* For color coding */
+        border-left: 4px solid;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
     }
-    .slot-item:hover { transform: scale(1.02); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .slot-item:hover { transform: translateY(-1px); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
     
     .slot-available {
-        background: var(--slot-available-bg);
-        border-color: var(--slot-available-border);
-        color: var(--slot-available-text);
+        background: #F0FDF4;
+        border-color: #22C55E;
+        color: #166534;
     }
 
     .slot-booked {
-        background: var(--slot-booked-bg);
-        border-color: var(--slot-booked-border);
-        color: var(--slot-booked-text);
+        background: #EFF6FF;
+        border-color: #3B82F6;
+        color: #1E40AF;
     }
 
     .slot-unavailable {
-        background: var(--slot-unavailable-bg);
-        border-color: var(--slot-unavailable-border);
-        color: var(--slot-unavailable-text);
-    }
-
-    .cal-interactive-cell {
-        cursor: pointer;
-        transition: background-color 0.2s;
-    }
-    .cal-interactive-cell:hover {
-        background-color: #F0F9FF;
+        background: #FEF2F2;
+        border-color: #EF4444;
+        color: #991B1B;
     }
 
     /* Table Section */
@@ -335,14 +344,33 @@
     .close-btn { background: none; border: none; font-size: 24px; cursor: pointer; color: #94A3B8; }
 
     @media (max-width: 900px) {
-        .dash-container { padding: 0 15px; }
-        .dash-header { flex-direction: column; align-items: flex-start; }
-        .stats-grid { grid-template-columns: 1fr; }
-        .cal-grid { grid-template-columns: 80px repeat(auto-fit, minmax(100px, 1fr)); }
-        .cal-header-cell, .cal-time-col { font-size: 10px; padding: 8px 4px; }
-        .slot-item { font-size: 10px; padding: 2px 4px; }
+        .dash-container { 
+            grid-template-columns: 1fr !important;
+            padding: 0 16px;
+        }
+        .main-content { order: 1; }
+        .stats-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+        .stat-card { padding: 16px; }
+        .stat-value { font-size: 20px; }
+        
+        /* Mobile Calendar Transformation */
+        .cal-grid {
+            grid-template-columns: 70px repeat(7, calc(100vw - 110px));
+            gap: 2px;
+        }
+        .cal-header-cell { font-size: 12px; white-space: nowrap; }
+        .slot-item { font-size: 10px; }
+        .slot-booked div { font-size: 10px !important; }
+
         .dash-table th, .dash-table td { padding: 12px 10px; font-size: 12px; }
-        .modal-box { max-width: 90%; padding: 20px; }
+        .modal-box { max-width: 95%; padding: 24px 16px; }
+        .action-btn { font-size: 10px; padding: 4px 8px; }
+    }
+
+    @media (max-width: 480px) {
+        .stats-grid { grid-template-columns: 1fr; }
+        .cal-controls { flex-direction: column; align-items: stretch; text-align: center; }
+        .calendar-container { padding: 12px; border-radius: 12px; }
     }
 </style>
 
@@ -386,13 +414,13 @@
             <h2 class="section-title">Schedule Overview</h2>
         </div>
         
-        <div class="calendar-container" style="overflow-x: auto;">
-            <div class="cal-controls" style="min-width: 600px;">
-                <button class="cal-btn" id="prevWeekBtn">← Previous Week</button>
-                <h3 style="margin:0; font-size: 16px;" id="currentWeekLabel">Current Week</h3>
-                <button class="cal-btn" id="nextWeekBtn">Next Week →</button>
+        <div class="calendar-container">
+            <div class="cal-controls">
+                <button class="cal-btn" id="prevWeekBtn">← Prev</button>
+                <h3 style="margin:0; font-size: 16px; font-weight: 800; color:var(--dash-primary);" id="currentWeekLabel">...</h3>
+                <button class="cal-btn" id="nextWeekBtn">Next →</button>
             </div>
-            <div class="cal-grid" id="calendarGrid" style="min-width: 600px;">
+            <div class="cal-grid" id="calendarGrid">
                 <!-- Rendered via JS -->
             </div>
         </div>
@@ -629,7 +657,7 @@
     function renderCalendar() {
         const grid = document.getElementById('calendarGrid');
         if (!grid) return;
-        grid.innerHTML = '<div class="cal-header-cell">Time</div>';
+        grid.innerHTML = '<div class="cal-header-cell sticky-col">Time</div>';
         
         const weekDates = [];
         for(let i=0; i<7; i++) {
@@ -668,8 +696,12 @@
                 } else if (booking) {
                     content = `
                         <div class="slot-item slot-booked" onclick="viewDetail('${booking.id}')">
-                            <div style="font-weight:700;">${petEmoji(booking.pet_type)} ${booking.pet_name}</div>
-                            <div style="opacity:0.8; font-size:9px;">${booking.client_name.split(' ')[0]} - ${booking.service}</div>
+                            <div style="font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                                ${petEmoji(booking.pet_type)} ${booking.pet_name}
+                            </div>
+                            <div style="opacity:0.8; font-size:9px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                                ${booking.client_name.split(' ')[0]} | ${booking.service}
+                            </div>
                         </div>`;
                 }
                 
