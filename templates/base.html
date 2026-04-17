@@ -112,7 +112,11 @@
             </div>
             <div class="footer-col">
                 <h4>Get Care</h4>
-                <a href="{{ url_for('booking_page') }}">Book Now</a>
+                {% if current_user %}
+                    <a href="{{ url_for('booking_page') }}">Book Now</a>
+                {% else %}
+                    <a href="{{ url_for('login', next=url_for('booking_page')) }}">Book Now</a>
+                {% endif %}
                 <a href="#">Emergency</a>
                 <a href="{{ url_for('contact') }}">Contact</a>
             </div>

@@ -43,13 +43,12 @@ app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(minutes=15) # Short-lived for
 db = SQLAlchemy(app)
 
 # ===================== SECURITY CONFIGURATION =====================
-# THREAT 2: Man-in-the-Middle (MITM) Protection
-# We enforce HTTPS-only cookies (Secure=True) and block cross-site script access (HttpOnly=True).
+# Optimized for Local Development & PWA Compatibility
 app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
-    SESSION_COOKIE_SECURE=True,    # Ensures cookies are ONLY sent over encrypted HTTPS
-    SESSION_COOKIE_SAMESITE='Lax', # Prevents CSRF (Cross-Site Request Forgery)
-    PERMANENT_SESSION_LIFETIME=timedelta(minutes=30)
+    SESSION_COOKIE_SECURE=False,   # Set to False for local HTTP development
+    SESSION_COOKIE_SAMESITE='Lax',  
+    PERMANENT_SESSION_LIFETIME=timedelta(hours=2)
 )
 
 # --- Web Push Configuration ---
@@ -108,8 +107,8 @@ def add_security_headers(response):
     response.headers['X-Frame-Options'] = 'SAMEORIGIN'
     response.headers['X-XSS-Protection'] = '1; mode=block'
     
-    # HSTS: Enforce HTTPS for 1 year (Standard security practice)
-    response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+    # HSTS: Only enable in production with HTTPS
+    # response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
     
     # CSP: Restrict resource loading to trusted sources
     # Note: 'unsafe-inline' is used sparingly for legacy templates; move to nonces in future.
@@ -709,37 +708,59 @@ def signup():
 @app.route('/login', methods=['GET','POST'])
 def login():
     if request.method == 'POST':
-        email    = clean_input(request.form.get('email','').lower())
-        password = request.form.get('password','')
+        # --- FIX: Support both JSON (Fetch) and Form submissions ---
+        if request.is_json:
+            data = request.get_json()
+        else:
+            data = request.form
+            
+        email    = clean_input(data.get('email', '').lower())
+        password = data.get('password', '')
         user = User.query.filter_by(email=email).first()
 
         if user and user.check_password(password):
             if not user.is_active:
+                if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return jsonify({'error': 'Your account has been deactivated.'}), 403
                 flash('Your account has been deactivated. Please contact support.', 'error')
                 return render_template('login.html')
             
-            # SESSION ROTATION: We clear the old session and create a new one on login.
-            # This prevents 'Session Fixation' attacks where an attacker sets your ID.
             session.clear()
             session['user_id'] = user.id
-            
-            # Generate the 'Fingerprint' snapshot
             session['ip'] = request.remote_addr
             session['user_agent'] = request.headers.get('User-Agent')
+            session.permanent = True # Use the 2h lifetime defined in config
             
-            flash(f'Welcome back, {user.first_name}!', 'success')
+            # Generate JWT Token for PWA features (still available for headers if needed)
+            access_token = create_jwt_token(user.id, user.role)
             
-            # Check for redirect target in either args (GET param) or form (hidden input if we added one)
+            # Priority 1: Check 'next' parameter in URL (e.g. ?next=/booking)
             next_url = request.args.get('next')
             
-            if user.role == 'admin':
-                return redirect(next_url if next_url and 'admin' in next_url else url_for('admin_dashboard'))
-            elif user.role == 'staff':
-                return redirect(next_url if next_url and 'staff' in next_url else url_for('staff_dashboard'))
-            else:
-                next_url = request.args.get('next') or url_for('dashboard')
-                return redirect(next_url)
+            # Priority 2: Fallback to role-based default dashboards
+            if not next_url or not next_url.startswith('/'):
+                if user.role == 'admin':
+                    next_url = url_for('admin_dashboard')
+                elif user.role == 'staff':
+                    next_url = url_for('staff_dashboard')
+                else:
+                    next_url = url_for('dashboard')
+
+            # AJAX Support for SPA/PWA feels
+            if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({
+                    'success': True,
+                    'access_token': access_token,
+                    'redirect': next_url,
+                    'role': user.role,
+                    'user_name': user.first_name
+                }), 200
+
+            flash(f'Welcome back, {user.first_name}!', 'success')
+            return redirect(next_url)
         else:
+            if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({'error': 'Invalid email or password.'}), 401
             flash('Invalid email or password.', 'error')
             return render_template('login.html')
     return render_template('login.html')
@@ -1069,7 +1090,6 @@ def unblock_time(current_user_jwt):
     return jsonify({'message': 'Time slot is now available'}), 200
 
 @api_v1.route('/users', methods=['GET', 'POST'])
-@jwt_required
 @role_required(['admin'])
 def manage_users(current_user_jwt):
     if request.method == 'GET':
@@ -1099,7 +1119,6 @@ def manage_users(current_user_jwt):
         return jsonify({'message': 'User created successfully', 'user_id': new_user.id}), 201
 
 @api_v1.route('/users/<int:user_id>', methods=['GET', 'PUT', 'DELETE'])
-@jwt_required
 @role_required(['admin'])
 def manage_single_user(current_user_jwt, user_id):
     user = db.session.get(User, user_id)
@@ -1283,7 +1302,6 @@ def api_notifications(current_user_jwt):
         return jsonify({'message': 'Notification sent successfully', 'notification_id': new_notification.id}), 201
 
 @api_v1.route('/workload', methods=['GET'])
-@jwt_required
 @role_required(['staff', 'admin'])
 def get_workload_api(current_user_jwt):
     today = date.today()
@@ -1367,7 +1385,6 @@ def send_push_notification(user_id, title, body, url=None):
             print(f"Unexpected push error: {e}")
 
 @api_v1.route('/reports', methods=['GET', 'POST'])
-@jwt_required
 @role_required(['staff', 'admin'])
 def api_reports(current_user_jwt):
     if request.method == 'GET':
@@ -1404,7 +1421,6 @@ def api_reports(current_user_jwt):
         return jsonify({'message': 'Report submitted successfully'}), 201
 
 @api_v1.route('/reports/<int:report_id>', methods=['PUT', 'DELETE'])
-@jwt_required
 @role_required(['admin'])
 def api_report_detail(current_user_jwt, report_id):
     report = db.session.get(Report, report_id)

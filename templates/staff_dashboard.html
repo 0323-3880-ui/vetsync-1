@@ -107,136 +107,173 @@
         color: var(--dash-text);
     }
 
-    /* Calendar Section */
-    .section-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 20px;
-    }
-
-    .section-title {
-        font-size: 20px;
-        font-weight: 600;
-        color: var(--dash-text);
-    }
-
+    /* PROFESSIONAL MONTHLY CALENDAR OVERHAUL */
     .calendar-container {
         background: var(--dash-card-bg);
         border: 1px solid var(--dash-border);
-        border-radius: 16px;
+        border-radius: 24px;
+        padding: 24px;
         margin-bottom: 40px;
-        /* Mobile Smooth Scroll */
-        overflow-x: auto;
-        scroll-snap-type: x mandatory;
-        -webkit-overflow-scrolling: touch;
-        position: relative;
-    }
-    
-    /* Mobile-only swipe hint */
-    @media (max-width: 900px) {
-        .calendar-container::after {
-            content: '';
-            position: sticky;
-            right: 0;
-            top: 0;
-            height: 100%;
-            width: 30px;
-            background: linear-gradient(to left, rgba(255,255,255,0.8), transparent);
-            pointer-events: none;
-            z-index: 5;
-            display: block;
-        }
+        box-shadow: 0 10px 30px rgba(0,0,0,0.03);
     }
 
     .cal-controls {
         display: flex;
         justify-content: space-between;
-        margin-bottom: 20px;
         align-items: center;
-        flex-wrap: wrap;
-        gap: 15px;
-    }
-
-    .cal-grid {
-        display: grid;
-        /* Default Desktop Grid */
-        grid-template-columns: 80px repeat(7, 1fr);
-        gap: 1px;
-        background: var(--dash-border);
-        border: 1px solid var(--dash-border);
-        border-radius: 8px;
-    }
-
-    .cal-cell {
-        background: white;
-        min-height: 80px;
-        padding: 8px;
-        position: relative;
-        scroll-snap-align: start;
-    }
-
-    .cal-header-cell {
-        background: #F8FAFC;
-        text-align: center;
-        padding: 16px 8px;
-        font-weight: 700;
-        font-size: 14px;
-        color: var(--dash-text-muted);
-        position: sticky;
-        top: 0;
-        z-index: 5;
+        margin-bottom: 24px;
+        padding: 10px;
         border-bottom: 1px solid var(--dash-border);
     }
 
-    /* Keep the 'Time' header and column sticky on mobile swipe */
-    .cal-header-cell:first-child, .cal-time-col {
-        position: sticky;
-        left: 0;
-        z-index: 10;
-        background: #F1F5F9;
-        border-right: 2px solid var(--dash-border);
+    .cal-month-title {
+        font-size: 22px;
+        font-weight: 800;
+        color: var(--dash-text);
+        margin: 0;
     }
 
-    .cal-time-col {
-        text-align: right;
-        padding-right: 12px;
+    .month-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 8px;
+    }
+
+    .weekday-label {
+        text-align: center;
         font-size: 11px;
-        font-weight: 700;
+        font-weight: 800;
         color: var(--dash-text-muted);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        padding: 10px 0;
+    }
+
+    .day-cell {
+        background: white;
+        border: 1px solid var(--dash-border);
+        border-radius: 14px;
+        min-height: 120px;
+        padding: 8px;
+        position: relative;
+        cursor: pointer;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        overflow: hidden;
+    }
+
+    .day-cell:hover {
+        border-color: var(--dash-primary);
+        box-shadow: 0 4px 20px rgba(14, 165, 233, 0.1);
+        z-index: 10;
+        transform: scale(1.02);
+    }
+
+    .day-cell.today {
+        border: 2px solid var(--dash-primary);
+        background: #F0F9FF;
+    }
+    .day-cell.other-month {
+        background: #F8FAFC;
+        opacity: 0.3;
+        pointer-events: none;
+    }
+
+    .day-cell.empty-day {
+        background-image: radial-gradient(var(--dash-border) 0.5px, transparent 0.5px);
+        background-size: 10px 10px;
+        background-color: #FAFAFA;
+    }
+
+    .day-num {
+        font-size: 13px;
+        font-weight: 800;
+        color: #64748B;
+        margin-bottom: 4px;
+    }
+    .today .day-num { color: var(--dash-primary); }
+
+    /* Event Strips */
+    .event-strip {
+        font-size: 10px;
+        font-weight: 700;
+        padding: 4px 8px;
+        border-radius: 6px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
         display: flex;
         align-items: center;
-        justify-content: flex-end;
+        gap: 4px;
+        border: 1px solid transparent;
+    }
+    .strip-confirmed { background: #ECFDF5; color: #065F46; border-color: #BBF7D0; }
+    .strip-pending { background: #FFFBEB; color: #92400E; border-color: #FEF3C7; }
+    .strip-completed { background: #EFF6FF; color: #1E40AF; border-color: #DBEAFE; opacity: 0.8; }
+    .strip-cancelled { background: #FEF2F2; color: #991B1B; border-color: #FEE2E2; text-decoration: line-through; opacity: 0.6; }
+
+    .strip-more {
+        font-size: 9px;
+        text-align: center;
+        color: var(--dash-text-muted);
+        font-weight: 700;
+        padding-top: 2px;
     }
 
-    .slot-item {
-        border-radius: 6px;
-        padding: 6px 10px;
-        font-size: 11px;
-        margin-bottom: 4px;
-        cursor: pointer;
-        transition: all 0.2s;
-        border-left: 4px solid;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    /* Modal / Side Detail View */
+    .day-appt-container {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
     }
-    .slot-item:hover { transform: translateY(-1px); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
     
-    .slot-available {
-        background: #F0FDF4;
-        border-color: #22C55E;
-        color: #166534;
+    .detailed-card {
+        background: #F8FAFC;
+        border: 1px solid var(--dash-border);
+        border-radius: 16px;
+        padding: 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: all 0.2s;
+    }
+    .detailed-card:hover { border-color: var(--dash-primary); background: white; }
+
+    .appt-main { flex: 1; }
+    .appt-time-tag {
+        font-size: 12px;
+        font-weight: 800;
+        color: var(--dash-primary);
+        margin-bottom: 4px;
+    }
+    .appt-pet-name {
+        font-size: 16px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .appt-client-info {
+        font-size: 12px;
+        color: var(--dash-text-muted);
+        margin-top: 4px;
     }
 
-    .slot-booked {
-        background: #EFF6FF;
-        border-color: #3B82F6;
-        color: #1E40AF;
+    .appt-actions {
+        display: flex;
+        gap: 8px;
     }
 
-    .slot-unavailable {
-        background: #FEF2F2;
-        border-color: #EF4444;
-        color: #991B1B;
+    /* Mobile scaling logic */
+    @media (max-width: 900px) {
+        .month-grid { gap: 4px; }
+        .day-cell { min-height: 80px; padding: 4px; border-radius: 10px; }
+        .day-num { font-size: 11px; }
+        .event-strip { padding: 2px 4px; }
+        .event-strip span { display: none; } /* Hide text on mobile grids */
+        .strip-more { display: none; }
     }
 
     /* Table Section */
@@ -374,16 +411,6 @@
     }
 </style>
 
-<div id="sessionGuard" style="position:fixed; inset:0; background:white; z-index:9999; display:flex; flex-direction:column; align-items:center; justify-content:center;">
-    <div style="font-size: 24px; margin-bottom: 20px;">🛡️</div>
-    <p style="font-weight:600; color:var(--dash-text);">Verifying Staff Session...</p>
-    <div style="width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid var(--dash-primary); border-radius: 50%; animation: spin 1s linear infinite;"></div>
-</div>
-
-<style>
-    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-</style>
-
 <div class="dash-container" style="display: grid; grid-template-columns: 1fr 340px; gap: 30px; align-items: start;">
     
     <div class="main-content">
@@ -419,19 +446,25 @@
             </div>
         </div>
 
-        <!-- CALENDAR SECTION -->
-        <div class="section-header" id="schedule">
-            <h2 class="section-title">Schedule Overview</h2>
-        </div>
-        
         <div class="calendar-container">
             <div class="cal-controls">
-                <button class="cal-btn" id="prevWeekBtn">← Prev</button>
-                <h3 style="margin:0; font-size: 16px; font-weight: 800; color:var(--dash-primary);" id="currentWeekLabel">...</h3>
-                <button class="cal-btn" id="nextWeekBtn">Next →</button>
+                <button class="cal-btn" onclick="navMonth(-1)">← Previous Month</button>
+                <h3 id="calendarMonthLabel" class="cal-month-title">...</h3>
+                <button class="cal-btn" onclick="navMonth(1)">Next Month →</button>
             </div>
-            <div class="cal-grid" id="calendarGrid">
-                <!-- Rendered via JS -->
+
+            <div class="month-grid">
+                <div class="weekday-label">Mon</div>
+                <div class="weekday-label">Tue</div>
+                <div class="weekday-label">Wed</div>
+                <div class="weekday-label">Thu</div>
+                <div class="weekday-label">Fri</div>
+                <div class="weekday-label">Sat</div>
+                <div class="weekday-label">Sun</div>
+            </div>
+            
+            <div class="month-grid" id="monthGrid">
+                <!-- Days rendered by JS -->
             </div>
         </div>
 
@@ -540,17 +573,43 @@
     </div>
 </div>
 
-<!-- Modal: Booking Details -->
-<div class="modal-overlay" id="detailsModal">
-    <div class="modal-box">
-        <div class="modal-header">
-            <h3 class="modal-title">Appointment Details</h3>
-            <button class="close-btn" onclick="closeModal('detailsModal')">&times;</button>
+<!-- Modal: Day Detail (Side Panel Style) -->
+<div class="modal-overlay" id="dayDetailModal">
+    <div class="modal-box" style="max-width: 700px; padding: 40px; border-radius: 28px;">
+        <div class="modal-header" style="border-bottom: 1px solid var(--dash-border); padding-bottom: 24px; margin-bottom: 30px;">
+            <div>
+                <h3 class="modal-title" id="detailModalTitle" style="font-size: 24px;">Daily Schedule</h3>
+                <p id="detailModalDate" style="font-weight: 700; color: var(--dash-primary); letter-spacing: 0.5px;"></p>
+            </div>
+            <button class="close-btn" onclick="closeModal('dayDetailModal')">&times;</button>
         </div>
-        <div id="modalContent" style="font-size: 15px; line-height: 1.6;"></div>
-        <div style="margin-top: 24px; display:flex; gap:12px; justify-content: flex-end;">
-            <button class="cal-btn" onclick="closeModal('detailsModal')">Close</button>
-            <button class="cal-btn primary" onclick="alert('Checking in patient...')">Check In</button>
+        
+        <div class="day-appt-container" id="dayApptList">
+            <!-- Detailed cards injected here -->
+        </div>
+
+        <div style="margin-top: 32px; display:flex; justify-content: flex-end;">
+            <button class="cal-btn" onclick="closeModal('dayDetailModal')" style="padding: 12px 30px;">Done</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Availability Manager -->
+<div class="modal-overlay" id="availabilityModal">
+    <div class="modal-box" style="max-width: 500px;">
+        <div class="modal-header">
+            <h3 class="modal-title">Manage Availability</h3>
+            <button class="close-btn" onclick="closeModal('availabilityModal')">&times;</button>
+        </div>
+        <div style="margin-bottom: 20px;">
+            <label style="font-size:13px; font-weight:600; color:var(--dash-text); display:block; margin-bottom:8px;">1. Select Date</label>
+            <input type="date" id="availDate" onchange="loadBlockedForDate()" style="width:100%; padding:12px; border-radius:10px; border:1px solid var(--dash-border);">
+        </div>
+        <div id="availSlotsGrid" style="display:grid; grid-template-columns: repeat(2, 1fr); gap:10px; max-height:300px; overflow-y:auto; padding-right:5px;">
+            <!-- Slots injected here -->
+        </div>
+        <div style="margin-top: 24px; text-align:right;">
+            <button class="cal-btn primary" onclick="closeModal('availabilityModal')">Done</button>
         </div>
     </div>
 </div>
@@ -595,222 +654,228 @@
 </script>
 <script>
     const rawBookings = JSON.parse(document.getElementById('bookings-data').textContent || '[]');
-    const timeSlots = [
-        "8:00 AM", "9:00 AM", "10:00 AM", "11:00 AM", "12:00 PM",
-        "1:00 PM", "2:00 PM", "3:00 PM", "4:00 PM", "5:00 PM",
-        "6:00 PM", "7:00 PM", "8:00 PM", "9:00 PM"
-    ];
     
-    let currentDate = new Date();
-    const currentDay = currentDate.getDay();
-    const diff = currentDate.getDate() - currentDay + (currentDay === 0 ? -6 : 1);
-    let startOfWeek = new Date(new Date(currentDate).setDate(diff));
-    
+    // Group bookings by date for fast Lookup
+    const bookingsByDate = {};
+    rawBookings.forEach(b => {
+        const d = b.date; // "YYYY-MM-DD"
+        if(!bookingsByDate[d]) bookingsByDate[d] = [];
+        bookingsByDate[d].push(b);
+    });
+
+    const petEmoji = (type) => {
+        const t = String(type).toLowerCase();
+        if (t.includes('dog')) return '🐶';
+        if (t.includes('cat')) return '🐱';
+        if (t.includes('bird')) return '🐦';
+        if (t.includes('rabbit')) return '🐰';
+        if (t.includes('reptile') || t.includes('lizard')) return '🦎';
+        if (t.includes('fish')) return '🐟';
+        return '🐾';
+    };
+
+    let displayDate = new Date();
+    displayDate.setDate(1); // Start at first of current month
+
+    function renderCalendar() {
+        const grid = document.getElementById('monthGrid');
+        const label = document.getElementById('calendarMonthLabel');
+        if (!grid) return;
+
+        grid.innerHTML = '';
+        const month = displayDate.getMonth();
+        const year = displayDate.getFullYear();
+        label.innerText = displayDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+        const firstDay = new Date(year, month, 1).getDay();
+        let startShift = firstDay === 0 ? 6 : firstDay - 1;
+        const totalDays = new Date(year, month + 1, 0).getDate();
+
+        for(let i=0; i<startShift; i++) grid.innerHTML += `<div class="day-cell other-month"></div>`;
+
+        const today = new Date();
+        for(let d=1; d<=totalDays; d++) {
+            const dateObj = new Date(year, month, d);
+            const dateStr = formatDate(dateObj);
+            const apps = bookingsByDate[dateStr] || [];
+            
+            const isToday = today.toDateString() === dateObj.toDateString();
+            const cellClass = isToday ? 'today' : (apps.length === 0 ? 'empty-day' : '');
+            
+            let eventContent = '';
+            apps.sort((a,b) => a.slot.localeCompare(b.slot)).slice(0, 2).forEach(a => {
+                eventContent += `
+                    <div class="event-strip strip-${a.status}">
+                        ${petEmoji(a.pet_type)} <span>${a.pet_name} - ${a.service}</span>
+                    </div>
+                `;
+            });
+            if(apps.length > 2) eventContent += `<div class="strip-more">+ ${apps.length - 2} more</div>`;
+
+            grid.innerHTML += `
+                <div class="day-cell ${cellClass}" onclick="openDayDetail('${dateStr}')">
+                    <span class="day-num">${d}</span>
+                    <div class="events-container">${eventContent}</div>
+                </div>
+            `;
+        }
+    }
+
+    function navMonth(dir) {
+        displayDate.setMonth(displayDate.getMonth() + dir);
+        renderCalendar();
+    }
+
+    function openDayDetail(dateStr) {
+        const appointments = bookingsByDate[dateStr] || [];
+        const dateObj = new Date(dateStr);
+        document.getElementById('detailModalDate').innerText = dateObj.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+        
+        const list = document.getElementById('dayApptList');
+        list.innerHTML = '';
+        
+        if(appointments.length === 0) {
+            list.innerHTML = '<div style="text-align:center; padding: 60px; color:#94A3B8;"><div style="font-size:40px; margin-bottom:10px;">🍃</div>No visits scheduled for this day.</div>';
+        } else {
+            appointments.sort((a,b) => a.slot.localeCompare(b.slot)).forEach(a => {
+                list.innerHTML += `
+                    <div class="detailed-card">
+                        <div class="appt-main">
+                            <div class="appt-time-tag">${a.slot}</div>
+                            <div class="appt-pet-name">${petEmoji(a.pet_type)} ${a.pet_name}</div>
+                            <div class="appt-client-info">${a.service} • <strong>Client:</strong> ${a.client_name}</div>
+                            <div style="margin-top:10px;">
+                                <span class="status-pill status-${a.status}">${a.status}</span>
+                            </div>
+                        </div>
+                        <div class="appt-actions">
+                            ${a.status === 'confirmed' || a.status === 'pending' ? `
+                                <button class="action-btn action-finish" onclick="updateApptStatus(${a.id}, 'completed', '${dateStr}')">🏁 Finish</button>
+                                <button class="action-btn action-cancel" onclick="updateApptStatus(${a.id}, 'cancelled', '${dateStr}')">✕ Cancel</button>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+        }
+        document.getElementById('dayDetailModal').classList.add('active');
+    }
+
+    async function updateApptStatus(id, newStatus, currentDateStr) {
+        if(!confirm(`Mark this appointment as ${newStatus}?`)) return;
+        
+        const btn = event.target;
+        btn.disabled = true;
+
+        try {
+            const formData = new FormData();
+            formData.append('status', newStatus);
+            const res = await fetch(`/staff/booking/${id}/status`, { method: 'POST', body: formData });
+
+            if(res.ok) {
+                const app = rawBookings.find(b => b.id === id);
+                if(app) app.status = newStatus;
+                renderCalendar();
+                openDayDetail(currentDateStr);
+            } else {
+                alert("Operation failed.");
+                btn.disabled = false;
+            }
+        } catch (e) { alert("Connection Error."); btn.disabled = false; }
+    }
+
+    function formatDate(date) {
+        let d = new Date(date),
+            month = '' + (d.getMonth() + 1),
+            day = '' + d.getDate(),
+            year = d.getFullYear();
+
+        if (month.length < 2) month = '0' + month;
+        if (day.length < 2) day = '0' + day;
+
+        return [year, month, day].join('-');
+    }
+
+    // --- Availability & Performance Restoration ---
     let blockedSlotsCache = [];
+    const timeSlots = ["8:00 AM", "9:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "1:00 PM", "2:00 PM", "3:00 PM", "4:00 PM", "5:00 PM", "6:00 PM", "7:00 PM", "8:00 PM", "9:00 PM"];
 
     function getAuthHeaders() {
-        const token = localStorage.getItem('access_token');
-        if (!token) {
-            console.warn("Session Missing: Redirecting...");
-            window.location.href = '/login?msg=Session+Expired';
-            return null;
-        }
         return {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
+            'Authorization': `Bearer ${localStorage.getItem('access_token') || ''}`
         };
     }
 
     async function loadBlocked() {
-        const headers = getAuthHeaders();
-        if (!headers) return;
-        
         try {
-            const res = await fetch('/api/availability', { headers });
+            const res = await fetch('/api/availability', { headers: getAuthHeaders() });
             blockedSlotsCache = await res.json();
             renderCalendar();
-            initPerformanceChart();
-        } catch (e) { console.error("Load error", e); }
+        } catch (e) { console.error("Load blocked error", e); }
     }
 
     async function initPerformanceChart() {
-        const headers = getAuthHeaders();
-        if (!headers) return;
-
         try {
-            const res = await fetch('/api/v1/workload', { headers });
+            const res = await fetch('/api/v1/workload', { headers: getAuthHeaders() });
             if (!res.ok) return;
             const data = await res.json();
-            
-            const labels = Object.keys(data.hourly);
-            const values = Object.values(data.hourly);
-            
             const ctx = document.getElementById('performanceChart').getContext('2d');
             new Chart(ctx, {
                 type: 'bar',
                 data: {
-                    labels: labels.map(l => l.replace(/ AM| PM/, '')),
-                    datasets: [{
-                        label: 'Appointments',
-                        data: values,
-                        backgroundColor: '#0EA5E9',
-                        borderRadius: 4
-                    }]
+                    labels: Object.keys(data.hourly).map(l => l.split(' ')[0]),
+                    datasets: [{ label: 'Appts', data: Object.values(data.hourly), backgroundColor: '#0EA5E9', borderRadius: 4 }]
                 },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: { beginAtZero: true, ticks: { stepSize: 1 } }
-                    },
-                    plugins: {
-                        legend: { display: false }
-                    }
-                }
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
             });
-            
-            document.getElementById('performanceAdvice').innerText = 
-                data.percentage > 70 ? "High clinic utilization today." : "Manageable patient flow.";
-                
+            document.getElementById('performanceAdvice').innerText = data.percentage > 70 ? "High clinic utilization today." : "Manageable patient flow.";
         } catch (e) { console.error("Chart error", e); }
     }
 
-    function renderCalendar() {
-        const grid = document.getElementById('calendarGrid');
-        if (!grid) return;
-        grid.innerHTML = '<div class="cal-header-cell sticky-col">Time</div>';
+    function openAvailabilityModal() {
+        document.getElementById('availDate').value = formatDate(new Date());
+        loadBlockedForDate();
+        document.getElementById('availabilityModal').classList.add('active');
+    }
+
+    function loadBlockedForDate() {
+        const date = document.getElementById('availDate').value;
+        const grid = document.getElementById('availSlotsGrid');
+        grid.innerHTML = '';
         
-        const weekDates = [];
-        for(let i=0; i<7; i++) {
-            let d = new Date(startOfWeek);
-            d.setDate(d.getDate() + i);
-            weekDates.push(d);
-            const label = d.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric' });
-            grid.innerHTML += `<div class="cal-header-cell">${label}</div>`;
-        }
-
-        document.getElementById('currentWeekLabel').innerText = 
-            `${weekDates[0].toLocaleDateString('en-US',{month:'short',day:'numeric'})} - ${weekDates[6].toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}`;
-
         timeSlots.forEach(slot => {
-            grid.innerHTML += `<div class="cal-time-col">${slot}</div>`;
-            weekDates.forEach(date => {
-                const dateStr = formatDate(date);
-                const block = blockedSlotsCache.find(b => b.date === dateStr && b.slot === slot);
-                const booking = rawBookings.find(b => b.date === dateStr && b.slot === slot && b.status === "confirmed");
-                
-                let content = '<div class="slot-item slot-available">Free</div>';
-                
-                const petEmoji = (type) => {
-                    const t = String(type).toLowerCase();
-                    if (t.includes('dog')) return '🐶';
-                    if (t.includes('cat')) return '🐱';
-                    if (t.includes('bird')) return '🐦';
-                    if (t.includes('rabbit')) return '🐰';
-                    if (t.includes('reptile') || t.includes('lizard')) return '🦎';
-                    if (t.includes('fish')) return '🐟';
-                    return '🐾';
-                };
-
-                if (block) {
-                    content = '<div class="slot-item slot-unavailable">Break</div>';
-                } else if (booking) {
-                    content = `
-                        <div class="slot-item slot-booked" onclick="viewDetail('${booking.id}')">
-                            <div style="font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                                ${petEmoji(booking.pet_type)} ${booking.pet_name}
-                            </div>
-                            <div style="opacity:0.8; font-size:9px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                                ${booking.client_name.split(' ')[0]} | ${booking.service}
-                            </div>
-                        </div>`;
-                }
-                
-                grid.innerHTML += `<div class="cal-cell cal-interactive-cell" onclick="handleCellClick('${dateStr}', '${slot}', ${!!booking})">${content}</div>`;
-            });
+            const isBlocked = blockedSlotsCache.some(b => b.date === date && b.slot === slot);
+            const isBooked = rawBookings.some(b => b.date === date && b.slot === slot && b.status === "confirmed");
+            
+            grid.innerHTML += `
+                <div class="slot-item ${isBlocked ? 'slot-unavailable' : 'slot-available'}" 
+                     style="padding:15px; text-align:center; font-weight:700; ${isBooked ? 'opacity:0.5; pointer-events:none;' : ''}"
+                     onclick="toggleSlot('${date}', '${slot}', ${isBlocked})">
+                    ${slot} ${isBooked ? ' (Booked)' : ''}
+                </div>
+            `;
         });
     }
 
-    async function handleCellClick(date, slot, isBooked) {
-        if (isBooked) {
-            alert('This slot is already booked and cannot be modified.');
-            return;
-        }
-
-        const isBlocked = blockedSlotsCache.some(b => b.date === date && b.slot === slot);
-        
+    async function toggleSlot(date, slot, isBlocked) {
         try {
-            // Instant Toggle to Backend
             const res = await fetch('/api/availability', {
                 method: isBlocked ? 'DELETE' : 'POST',
                 headers: getAuthHeaders(),
-                body: JSON.stringify({ date: date, slot: slot })
+                body: JSON.stringify({ date, slot })
             });
 
             if (res.ok) {
                 if (isBlocked) {
                     blockedSlotsCache = blockedSlotsCache.filter(b => !(b.date === date && b.slot === slot));
                 } else {
-                    blockedSlotsCache.push({ date: date, slot: slot });
+                    blockedSlotsCache.push({ date, slot });
                 }
-                renderCalendar(); // Rerender immediately
-            } else {
-                alert('Failed to update availability.');
+                loadBlockedForDate(); // Refresh modal
+                renderCalendar();     // Refresh month view
             }
-        } catch (e) {
-            console.error("Availability Toggle Error", e);
-        }
-    }
-
-    function viewDetail(id) {
-        const b = rawBookings.find(item => item.id == id);
-        if (!b) return;
-        
-        const html = `
-            <div style="background: #F8FAFC; padding: 16px; border-radius: 12px; margin-bottom: 20px; border: 1px solid var(--dash-border);">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-                    <span style="font-weight:700; color:var(--dash-primary);">${b.date} at ${b.slot}</span>
-                    <span class="status-pill status-${b.status}">${b.status.toUpperCase()}</span>
-                </div>
-                <p style="margin:4px 0;"><strong>Service:</strong> ${b.service}</p>
-            </div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                <div style="background:white; border:1px solid var(--dash-border); padding:12px; border-radius:8px;">
-                    <h4 style="color:var(--dash-text-muted); font-size:11px; text-transform:uppercase; margin-bottom:8px;">Client</h4>
-                    <p style="margin:0; font-weight:600;">${b.client_name}</p>
-                    <p style="margin:4px 0; font-size:12px; color:var(--dash-text-muted);">${b.phone}</p>
-                </div>
-                <div style="background:white; border:1px solid var(--dash-border); padding:12px; border-radius:8px;">
-                    <h4 style="color:var(--dash-text-muted); font-size:11px; text-transform:uppercase; margin-bottom:8px;">Pet</h4>
-                    <p style="margin:0; font-weight:600;">${b.pet_name} (${b.pet_type})</p>
-                    <p style="margin:4px 0; font-size:12px; color:var(--dash-text-muted);">${b.pet_breed || 'Unknown Breed'}</p>
-                </div>
-            </div>
-        `;
-        document.getElementById('modalContent').innerHTML = html;
-        document.getElementById('detailsModal').classList.add('active');
-    }
-
-    async function updateStatus(bookingId, status) {
-        if (!confirm(`Are you sure you want to change the status to ${status}?`)) return;
-        
-        try {
-            const res = await fetch(`/api/v1/appointments/${bookingId}`, {
-                method: 'PUT',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('access_token') || ''}`
-                },
-                body: JSON.stringify({ status })
-            });
-            if (res.ok) {
-                location.reload(); // Quick refresh for now
-            } else {
-                alert('Error updating status');
-            }
-        } catch (e) {
-            console.error('Update status error', e);
-        }
+        } catch (e) { alert("Failed to update availability."); }
     }
 
     document.getElementById('reportForm').addEventListener('submit', async (e) => {
@@ -818,10 +883,7 @@
         try {
             const res = await fetch('/api/v1/reports', {
                 method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('access_token') || ''}`
-                },
+                headers: getAuthHeaders(),
                 body: JSON.stringify({
                     title: document.getElementById('repTitle').value,
                     category: document.getElementById('repCat').value,
@@ -832,28 +894,16 @@
                 alert("Report submitted successfully.");
                 document.getElementById('reportModal').style.display = 'none';
                 document.getElementById('reportForm').reset();
-            } else {
-                alert("Failed to submit report.");
             }
-        } catch (e) {
-            alert("Error sending report.");
-        }
+        } catch (e) { alert("Error sending report."); }
     });
 
     function closeModal(id) { document.getElementById(id).classList.remove('active'); }
     
-    document.getElementById('prevWeekBtn').onclick = () => { startOfWeek.setDate(startOfWeek.getDate()-7); renderCalendar(); };
-    document.getElementById('nextWeekBtn').onclick = () => { startOfWeek.setDate(startOfWeek.getDate()+7); renderCalendar(); };
-
-    // --- Initialization with Session Bridge ---
-    window.addEventListener('load', () => {
-        setTimeout(async () => {
-            const headers = getAuthHeaders();
-            if (headers) {
-                document.getElementById('sessionGuard').style.display = 'none';
-                await loadBlocked();
-            }
-        }, 500);
+    // --- Initialization ---
+    window.addEventListener('load', async () => {
+        await loadBlocked();
+        initPerformanceChart();
     });
 </script>
 {% endblock %}

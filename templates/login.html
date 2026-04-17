@@ -6,7 +6,7 @@
     <div class="auth-bg">
         <div class="auth-overlay">
             <h1 class="auth-welcome">Welcome to<br><span>VetSync Clinic</span></h1>
-            <p>Lorem ipsum is simply dummy text of the printing and typesetting industry. Lorem ipsum has been the industry's standard dummy text ever since the 1500s.</p>
+            <p>VetSync is a modern veterinary clinic management system that makes pet care effortless. Pet owners can easily book appointments 24/7, manage pet records, view offers, and access medical history through a simple dashboard.</p>
         </div>
     </div>
     <div class="auth-card login-card">
@@ -33,6 +33,46 @@
 </section>
 
 <script>
+const loginForm = document.querySelector('.login-form');
+const loginBtn = document.querySelector('.btn-auth');
+
+loginForm.addEventListener('submit', async (e) => {
+    // We still use Fetch for a smoother PWA experience, but with better cookie handling
+    e.preventDefault();
+    loginBtn.disabled = true;
+    loginBtn.innerText = 'Logging in...';
+
+    const formData = new FormData(loginForm);
+    const data = {};
+    formData.forEach((value, key) => data[key] = value);
+
+    try {
+        const response = await fetch(loginForm.action, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+
+        if (response.ok && result.success) {
+            // Save token for API features, but rely on SESSION for page access
+            localStorage.setItem('access_token', result.access_token);
+            window.location.href = result.redirect;
+        } else {
+            alert(result.error || 'Login failed.');
+            loginBtn.disabled = false;
+            loginBtn.innerText = 'Login';
+        }
+    } catch (error) {
+        // Fallback to standard form if Fetch fails
+        loginForm.submit();
+    }
+});
+
 function togglePassword(inputId, iconEl) {
     const input = document.getElementById(inputId);
     if (input.type === "password") {
