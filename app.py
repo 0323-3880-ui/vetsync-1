@@ -181,6 +181,7 @@ class Booking(db.Model):
         cancellations = Booking.query.filter_by(email=self.email, status='cancelled').count()
         return cancellations > 1
     user_id        = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    handled_by     = db.Column(db.String(100), nullable=True) # Tracks which staff accepted/finished
     created_at     = db.Column(db.DateTime, default=datetime.utcnow)
 
 class DoctorAvailability(db.Model):
@@ -965,6 +966,11 @@ def update_booking_status_web(bid):
         flash('Booking not found.', 'error')
     else:
         booking.status = status
+        # Update Handled By tracking
+        user = current_user()
+        if user:
+            booking.handled_by = f"{user.first_name} {user.last_name}"
+            
         db.session.commit()
         
         # Trigger Push Notification to Client
@@ -1322,6 +1328,23 @@ def get_workload_api(current_user_jwt):
         'percentage': round(percentage, 1)
     }), 200
 
+@api_v1.route('/appointments', methods=['GET'])
+@role_required(['admin', 'staff'])
+def api_get_appointments(current_user_jwt):
+    """Exposes all appointments with handled_by info for oversight."""
+    bookings = Booking.query.order_by(Booking.date.desc(), Booking.slot.desc()).all()
+    return jsonify([{
+        'id': b.id,
+        'date': b.date.isoformat(),
+        'slot': b.slot,
+        'pet_name': b.pet_name or 'N/A',
+        'name': b.name,
+        'service_id': b.service_id,
+        'service_name': b.service_ref.name if b.service_ref else 'Unknown',
+        'status': b.status,
+        'handled_by': b.handled_by or 'System / Not Recorded'
+    } for b in bookings]), 200
+
 
 # --- Push Notification API ---
 
@@ -1448,6 +1471,16 @@ app.register_blueprint(api_v1)
 
 with app.app_context():
     db.create_all()
+    
+    # Simple migration: Add handled_by column if it doesn't exist
+    try:
+        from sqlalchemy import text
+        db.session.execute(text("ALTER TABLE bookings ADD COLUMN handled_by VARCHAR(100)"))
+        db.session.commit()
+    except Exception:
+        # If column already exists (typical in recurring runs), ignore
+        db.session.rollback()
+        
     seed_data()
 
 if __name__ == '__main__':

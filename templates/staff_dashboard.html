@@ -519,30 +519,34 @@
                                 {{ b.status | title }}
                             </span>
                         </td>
-                        <td style="display:flex; gap:6px; flex-wrap:wrap;">
+                        <td style="display:flex; gap:6px; flex-wrap:wrap; align-items: center;">
+                            {# PENDING ACTIONS #}
                             {% if b.status == 'pending' %}
                             <form action="{{ url_for('update_booking_status_web', bid=b.id) }}" method="POST">
                                 <input type="hidden" name="status" value="confirmed">
-                                <button type="submit" class="action-btn action-accept" title="Accept Booking">✓ Accept</button>
+                                <button type="submit" class="action-btn" style="background: #E0F2FE; color: #0369A1; border: 1px solid #BAE6FD;" title="Confirm Appointment">✓ Accept</button>
                             </form>
                             {% endif %}
                             
+                            {# CONFIRMED ACTIONS #}
                             {% if b.status == 'confirmed' %}
                             <form action="{{ url_for('update_booking_status_web', bid=b.id) }}" method="POST">
                                 <input type="hidden" name="status" value="completed">
-                                <button type="submit" class="action-btn action-finish" title="Mark as Completed">🏁 Finish</button>
+                                <button type="submit" class="action-btn" style="background: #DCFCE7; color: #15803D; border: 1px solid #BBF7D0;" title="Mark as Completed">🏁 Finish</button>
                             </form>
                             {% endif %}
 
-                            {% if b.status != 'cancelled' and b.status != 'completed' %}
+                            {# CANCEL ACTION (for Pending or Confirmed) #}
+                            {% if b.status == 'pending' or b.status == 'confirmed' %}
                             <form action="{{ url_for('update_booking_status_web', bid=b.id) }}" method="POST">
                                 <input type="hidden" name="status" value="cancelled">
-                                <button type="submit" class="action-btn action-cancel" title="Cancel Booking">✕ Cancel</button>
+                                <button type="submit" class="action-btn" style="background: #FFF7ED; color: #C2410C; border: 1px solid #FFEDD5;" title="Cancel Appointment">✕ Cancel</button>
                             </form>
                             {% endif %}
                             
-                            <form action="{{ url_for('delete_booking_web', bid=b.id) }}" method="POST" onsubmit="return confirm('Completely remove this appointment?')">
-                                <button type="submit" class="action-btn action-delete" title="Delete Permanent">🗑️</button>
+                            {# DELETE ACTION (Always available) #}
+                            <form action="{{ url_for('delete_booking_web', bid=b.id) }}" method="POST" onsubmit="return confirm('Immediately remove this appointment from history? This cannot be undone.')">
+                                <button type="submit" class="action-btn" style="background: #FEF2F2; color: #B91C1C; border: 1px solid #FECACA; padding: 6px 8px;" title="Permanent Delete">🗑️</button>
                             </form>
                         </td>
                     </tr>
@@ -748,11 +752,21 @@
                                 <span class="status-pill status-${a.status}">${a.status}</span>
                             </div>
                         </div>
-                        <div class="appt-actions">
-                            ${a.status === 'confirmed' || a.status === 'pending' ? `
-                                <button class="action-btn action-finish" onclick="updateApptStatus(${a.id}, 'completed', '${dateStr}')">🏁 Finish</button>
-                                <button class="action-btn action-cancel" onclick="updateApptStatus(${a.id}, 'cancelled', '${dateStr}')">✕ Cancel</button>
+                        <div class="appt-actions" style="display:flex; gap:8px;">
+                            // PENDING
+                            ${a.status === 'pending' ? `
+                                <button class="action-btn" style="background:#E0F2FE; color:#0369A1; border:1px solid #BAE6FD;" onclick="updateApptStatus(${a.id}, 'confirmed', '${dateStr}')">✓ Accept</button>
+                                <button class="action-btn" style="background:#FFF7ED; color:#C2410C; border:1px solid #FFEDD5;" onclick="updateApptStatus(${a.id}, 'cancelled', '${dateStr}')">✕ Cancel</button>
                             ` : ''}
+
+                            // CONFIRMED
+                            ${a.status === 'confirmed' ? `
+                                <button class="action-btn" style="background:#DCFCE7; color:#15803D; border:1px solid #BBF7D0;" onclick="updateApptStatus(${a.id}, 'completed', '${dateStr}')">🏁 Finish</button>
+                                <button class="action-btn" style="background:#FFF7ED; color:#C2410C; border:1px solid #FFEDD5;" onclick="updateApptStatus(${a.id}, 'cancelled', '${dateStr}')">✕ Cancel</button>
+                            ` : ''}
+
+                            // DELETE (Always)
+                            <button class="action-btn" style="background:#FEF2F2; color:#B91C1C; border:1px solid #FECACA; padding: 6px 12px;" onclick="deleteApptFromCalendar(${a.id}, '${dateStr}')" title="Delete Permanent">🗑️</button>
                         </div>
                     </div>
                 `;
@@ -764,24 +778,47 @@
     async function updateApptStatus(id, newStatus, currentDateStr) {
         if(!confirm(`Mark this appointment as ${newStatus}?`)) return;
         
-        const btn = event.target;
-        btn.disabled = true;
-
         try {
             const formData = new FormData();
             formData.append('status', newStatus);
             const res = await fetch(`/staff/booking/${id}/status`, { method: 'POST', body: formData });
 
             if(res.ok) {
+                // Update local data for immediate feedback
                 const app = rawBookings.find(b => b.id === id);
                 if(app) app.status = newStatus;
+                
+                // Refresh UI components
                 renderCalendar();
                 openDayDetail(currentDateStr);
+                
+                // If the table exists on page, we might want to reload or update it
+                // For simplicity in this demo, we'll suggest a partial reload in a real app
+                // but here local state + renderCalendar is very fast.
+                setTimeout(() => { location.reload(); }, 800); // Slight delay for UX
             } else {
                 alert("Operation failed.");
-                btn.disabled = false;
             }
-        } catch (e) { alert("Connection Error."); btn.disabled = false; }
+        } catch (e) { alert("Connection Error."); }
+    }
+
+    async function deleteApptFromCalendar(id, currentDateStr) {
+        if(!confirm("Are you sure you want to permanently delete this appointment?")) return;
+        
+        try {
+            const res = await fetch(`/staff/booking/${id}/delete`, { method: 'POST' });
+            if(res.ok) {
+                // Remove from local data
+                const idx = rawBookings.findIndex(b => b.id === id);
+                if(idx > -1) rawBookings.splice(idx, 1);
+                
+                renderCalendar();
+                openDayDetail(currentDateStr);
+                setTimeout(() => { location.reload(); }, 800);
+            } else {
+                alert("Core server error during deletion.");
+            }
+        } catch (e) { alert("Network error."); }
     }
 
     function formatDate(date) {

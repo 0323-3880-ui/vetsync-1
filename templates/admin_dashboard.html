@@ -398,7 +398,7 @@
                             <th>Client / Pet</th>
                             <th>Service</th>
                             <th>Status</th>
-                            <th>Actions</th>
+                            <th>Handled By</th>
                         </tr>
                     </thead>
                     <tbody id="adminBookingsTableBody">
@@ -698,12 +698,11 @@
                             <div style="font-weight: 600;">${b.pet_name}</div>
                             <div style="font-size: 11px; color: var(--dash-text-muted);">${b.name}</div>
                         </td>
-                        <td><div style="font-size: 13px;">Serv #${b.service_id}</div></td>
+                        <td><div style="font-size: 13px;">${b.service_name}</div></td>
                         <td><span class="status-pill ${statusClass}">${b.status.toUpperCase()}</span></td>
                         <td>
-                            <div style="display:flex; gap:8px;">
-                                <button class="btn small" onclick="updateBookStatus(${b.id}, 'confirmed')">Approve</button>
-                                <button class="btn small danger-outline" onclick="updateBookStatus(${b.id}, 'cancelled')">Cancel</button>
+                            <div style="font-size: 13px; color: var(--dash-text-muted); font-weight: 500;">
+                                ${b.handled_by}
                             </div>
                         </td>
                     </tr>

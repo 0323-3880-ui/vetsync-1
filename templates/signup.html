@@ -28,7 +28,7 @@
                     <span class="field-icon">✉️</span>
                 </div>
                 <div class="auth-field">
-                    <input type="tel" name="contact" placeholder="Contact No." required>
+                    <input type="tel" name="contact" placeholder="Contact No." required oninput="this.value = this.value.replace(/[^0-9]/g, '')">
                     <span class="field-icon">📞</span>
                 </div>
             </div>

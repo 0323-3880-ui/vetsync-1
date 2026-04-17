@@ -85,7 +85,11 @@
                     <th>Client</th>
                     <th>Service</th>
                     <th>Status</th>
+                    {% if current_user.role == 'admin' %}
+                    <th>Handled By</th>
+                    {% else %}
                     <th>Actions</th>
+                    {% endif %}
                 </tr>
             </thead>
             <tbody>
@@ -120,23 +124,42 @@
                         </span>
                     </td>
                     <td>
-                        <div class="action-group">
+                        {% if current_user.role == 'admin' %}
+                        <div style="font-size: 13px; color: #64748B; font-weight: 500;">
+                            {{ b.handled_by or 'System / Not Recorded' }}
+                        </div>
+                        {% else %}
+                        <div class="action-group" style="display:flex; gap:6px;">
+                            {# PENDING #}
                             {% if b.status == 'pending' %}
                             <form action="{{ url_for('update_booking_status_web', bid=b.id) }}" method="POST">
                                 <input type="hidden" name="status" value="confirmed">
-                                <button type="submit" class="btn-action" title="Confirm">✅</button>
+                                <button type="submit" class="btn-action" title="Confirm" style="background:#E0F2FE; color:#0369A1; border-color:#BAE6FD; font-size:13px; font-weight:600;">Accept</button>
+                            </form>
+                            <form action="{{ url_for('update_booking_status_web', bid=b.id) }}" method="POST">
+                                <input type="hidden" name="status" value="cancelled">
+                                <button type="submit" class="btn-action" title="Cancel" style="background:#FFF7ED; color:#C2410C; border-color:#FFEDD5; font-size:13px; font-weight:600;">Cancel</button>
                             </form>
                             {% endif %}
+
+                            {# CONFIRMED #}
                             {% if b.status == 'confirmed' %}
                             <form action="{{ url_for('update_booking_status_web', bid=b.id) }}" method="POST">
                                 <input type="hidden" name="status" value="completed">
-                                <button type="submit" class="btn-action" title="Mark as Completed">🏁</button>
+                                <button type="submit" class="btn-action" title="Mark as Completed" style="background:#DCFCE7; color:#15803D; border-color:#BBF7D0; font-size:13px; font-weight:600;">Finish</button>
+                            </form>
+                            <form action="{{ url_for('update_booking_status_web', bid=b.id) }}" method="POST">
+                                <input type="hidden" name="status" value="cancelled">
+                                <button type="submit" class="btn-action" title="Cancel" style="background:#FFF7ED; color:#C2410C; border-color:#FFEDD5; font-size:13px; font-weight:600;">Cancel</button>
                             </form>
                             {% endif %}
-                            <form action="{{ url_for('delete_booking_web', bid=b.id) }}" method="POST" onsubmit="return confirm('Delete permanently?')">
-                                <button type="submit" class="btn-action" title="Delete">🗑️</button>
+
+                            {# DELETE (Always) #}
+                            <form action="{{ url_for('delete_booking_web', bid=b.id) }}" method="POST" onsubmit="return confirm('Immediately remove this appointment from history?')">
+                                <button type="submit" class="btn-action" title="Delete" style="background:#FEF2F2; color:#B91C1C; border-color:#FECACA; padding: 6px 10px;">🗑️</button>
                             </form>
                         </div>
+                        {% endif %}
                     </td>
                 </tr>
                 {% endfor %}
