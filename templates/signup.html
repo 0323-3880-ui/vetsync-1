@@ -14,11 +14,11 @@
         <form class="auth-form" action="{{ url_for('signup') }}" method="POST">
             <div class="auth-row">
                 <div class="auth-field">
-                    <input type="text" name="first_name" placeholder="Enter your First Name" required>
+                    <input type="text" name="first_name" id="first_name" placeholder="Enter your First Name" required>
                     <span class="field-icon">👤</span>
                 </div>
                 <div class="auth-field">
-                    <input type="text" name="last_name" placeholder="Enter your Last Name" required>
+                    <input type="text" name="last_name" id="last_name" placeholder="Enter your Last Name" required>
                     <span class="field-icon">👤</span>
                 </div>
             </div>
@@ -50,6 +50,15 @@
 
 <script>
 function togglePassword(inputId, iconEl) {
+    document.getElementById("first_name").addEventListener("input", function () {
+    this.value = this.value.replace(/[^a-zA-Z\s]/g, "");
+    });
+    document.getElementById("last_name").addEventListener("input", function () {
+    this.value = this.value.replace(/[^a-zA-Z\s]/g, "");
+    });
+    document.getElementById("contact").addEventListener("input", function () {
+    this.value = this.value.replace(/[^0-9]/g, "");
+    });
     const input = document.getElementById(inputId);
     if (input.type === "password") {
         input.type = "text";
